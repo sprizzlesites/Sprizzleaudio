@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sprizzle Audio — VST Plugins</title>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#08090b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg-0:#0a0b0d;
+    --bg-1:#101216;
+    --glass-border:rgba(255,255,255,0.10);
+    --glass-border-hi:rgba(255,255,255,0.20);
+    --text-0:#f3f4f5;
+    --text-1:#b8bcc2;
+    --text-2:#7d828a;
+    --gold:#d9a441;
+    --gold-soft:#e8bd6b;
+    --gold-glow:rgba(217,164,65,0.30);
+    --gold-glow-soft:rgba(217,164,65,0.10);
+    --radius-lg:16px;
+    --radius-md:12px;
+    --radius-sm:10px;
+    --radius-pill:999px;
+    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --spec-x:50%;
+    --spec-y:0%;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{background:var(--bg-0);}
+  body{
+    min-height:100vh;
+    min-height:100dvh;
+    /* transparent so the fixed .bg-frame (hydrated scrub frame) and .bg-scrim,
+       which sit at negative z-index, are not painted over by the body's own
+       background. The gradient lives on .bg-scrim instead. */
+    background:transparent;
+    color:var(--text-0);
+    font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ---------- hydrated scroll-scrub background frame ---------- */
+  /* Whatever frame index.html's background scrub was paused on when the user
+     clicked through gets handed off (sessionStorage) and painted here, so the
+     page boots on the same footage instead of flashing to a cold gradient. */
+  .bg-frame{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:-2;
+    opacity:0;
+    filter:saturate(1.1) brightness(1.2);
+    transition:opacity .7s ease;
+  }
+  .bg-frame.is-visible{opacity:1;}
+  .bg-scrim{
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    background:
+      radial-gradient(1200px 600px at 78% -8%, rgba(217,164,65,0.05), transparent 60%),
+      linear-gradient(180deg, rgba(10,11,13,.62), rgba(16,18,22,.78) 55%, rgba(10,11,13,.94));
+  }
+
+  /* soft ambient depth (kept subtle so the page reads calm, not neon) */
+  .glow-blob{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(120px);
+    pointer-events:none;
+    z-index:0;
+  }
+  .glow-blob.a{
+    width:600px;height:600px;
+    top:-220px;right:-180px;
+    opacity:0.5;
+    background:radial-gradient(circle, rgba(217,164,65,0.12), transparent 68%);
+  }
+  .glow-blob.b{
+    width:520px;height:520px;
+    bottom:-220px;left:-160px;
+    opacity:0.35;
+    background:radial-gradient(circle, rgba(120,150,190,0.06), transparent 70%);
+  }
+  .glow-blob.c{display:none;}
+
+  a{color:inherit;text-decoration:none;}
+
+  /* ---------- glass panel base (refined liquid glass) ---------- */
+  .glass{
+    position:relative;
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.045), rgba(255,255,255,0) 45%),
+      color-mix(in oklab, var(--bg-1) 55%, transparent);
+    border:1px solid var(--glass-border);
+    border-radius:var(--radius-lg);
+    -webkit-backdrop-filter:blur(20px) saturate(1.3);
+    backdrop-filter:blur(20px) saturate(1.3);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      0 10px 30px rgba(0,0,0,0.35),
+      0 1px 2px rgba(0,0,0,0.30);
+    will-change:transform;
+  }
+  @supports (backdrop-filter:url(#liquid-lens)){
+    .glass{
+      backdrop-filter:url(#liquid-lens) blur(15px) saturate(1.3);
+    }
+  }
+  /* moving specular: a subtle sheen that follows the pointer (or device tilt on
+     mobile) via --spec-x/--spec-y — kept understated so it reads as glass, not glare */
+  .glass::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background:
+      radial-gradient(200px 150px at var(--spec-x) var(--spec-y), rgba(255,255,255,0.08), transparent 60%),
+      linear-gradient(105deg, transparent 46%, rgba(255,255,255,0.05) 50%, transparent 54%);
+    background-position:0 0, var(--spec-x) 0;
+    background-size:auto, 220% 100%;
+    pointer-events:none;
+    mix-blend-mode:screen;
+    opacity:.8;
+  }
+  /* fine grain so the frost reads as real glass, not flat fill */
+  .glass::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    opacity:.035;
+    mix-blend-mode:overlay;
+    pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .sr-only-svg{position:absolute;width:0;height:0;overflow:hidden;}
+
+  /* ---------- layout shell ---------- */
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width:980px;
+    margin:0 auto;
+    padding:32px 20px 100px;
+  }
+
+  header.top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 24px;
+    margin-bottom:40px;
+  }
+  header.top .brand{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-family:var(--font-display);
+    font-size:1.05rem;
+    letter-spacing:0.01em;
+  }
+  header.top .brand .mark{
+    width:20px;height:20px;
+    flex-shrink:0;
+    color:var(--text-1);
+  }
+  header.top .brand .mark svg{width:100%;height:100%;display:block;}
+  header.top .brand .brand-logo{
+    height:60px;
+    width:auto;
+    display:block;
+    flex-shrink:0;
+  }
+  header.top .brand span{font-weight:400;color:var(--text-2);}
+  header.top nav{
+    display:flex;
+    align-items:center;
+    gap:20px;
+  }
+  header.top nav a{
+    color:var(--text-1);
+    font-size:0.9rem;
+    letter-spacing:0.01em;
+    transition:color .2s ease;
+  }
+  header.top nav a:hover{color:var(--text-0);}
+  .nav-mail{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:8px 15px;
+    border-radius:var(--radius-pill);
+    border:1px solid var(--glass-border);
+    background:rgba(255,255,255,0.025);
+    color:var(--text-1);
+    transition:border-color .2s ease, color .2s ease, background-color .2s ease;
+  }
+  .nav-mail:hover{
+    color:var(--text-0);
+    border-color:var(--glass-border-hi);
+    background:rgba(255,255,255,0.05);
+  }
+  .nav-mail svg{width:14px;height:14px;opacity:.8;}
+
+  .hero{
+    text-align:center;
+    padding:56px 28px 50px;
+    margin-bottom:44px;
+  }
+  .hero .eyebrow{
+    display:inline-block;
+    font-size:0.72rem;
+    font-weight:500;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--text-2);
+    margin-bottom:16px;
+  }
+  .hero h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:clamp(2.1rem, 5.5vw, 3rem);
+    line-height:1.08;
+    margin:0 0 14px;
+    color:var(--text-0);
+    letter-spacing:-0.02em;
+  }
+  .hero p{
+    color:var(--text-1);
+    font-size:1.02rem;
+    max-width:500px;
+    margin:0 auto;
+    line-height:1.6;
+  }
+
+  section.products{
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+  }
+
+  /* ---------- product row ---------- */
+  .product-row{
+    padding:28px;
+    display:grid;
+    grid-template-columns:96px 1fr auto;
+    grid-template-areas:"icon main buy";
+    gap:24px;
+    align-items:start;
+  }
+  /* Every .icon-box carries the same named area, so two of them would land in
+     the same cell and stack. The script groups them into .icon-stack, which
+     takes the area and lays them out down the column; this rule stays as the
+     no-JS fallback. */
+  .icon-box{grid-area:icon;}
+  .icon-stack{
+    grid-area:icon;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    min-width:0;
+  }
+  .icon-stack .icon-box{grid-area:auto;}
+  .product-main{grid-area:main;}
+  .purchase{grid-area:buy;}
+  @media (max-width:680px){
+    .product-row{
+      grid-template-columns:60px 1fr;
+      grid-template-areas:
+        "icon main"
+        "buy  buy";
+      gap:14px 16px;
+      padding:22px;
+    }
+  }
+
+  .icon-box{
+    width:88px;height:88px;
+    border-radius:var(--radius-md);
+    overflow:hidden;
+    background:linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border:1px solid var(--glass-border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.8rem;
+    color:var(--text-2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);
+    flex-shrink:0;
+  }
+  .icon-box img{
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  @media (max-width:680px){
+    .icon-box{width:60px;height:60px;font-size:1.4rem;}
+  }
+  /* an icon that opens the lightbox gets an affordance so it reads as clickable */
+  .icon-box.is-zoomable{
+    cursor:zoom-in;
+    transition:border-color .2s ease, transform .18s ease;
+  }
+  .icon-box.is-zoomable:hover{
+    border-color:var(--glass-border-hi);
+    transform:translateY(-2px);
+  }
+  .icon-box.is-zoomable:focus-visible{
+    outline:2px solid var(--gold);
+    outline-offset:3px;
+  }
+
+  /* ---------- image lightbox ---------- */
+  .lightbox{
+    position:fixed;
+    inset:0;
+    z-index:300;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:clamp(16px, 5vw, 48px);
+    background:rgba(6,7,9,0.72);
+    -webkit-backdrop-filter:blur(14px);
+    backdrop-filter:blur(14px);
+    opacity:0;
+    transition:opacity .22s ease;
+  }
+  .lightbox.is-open{display:flex;}
+  .lightbox.is-shown{opacity:1;}
+  .lightbox-panel{
+    position:relative;
+    max-width:min(920px, 100%);
+    max-height:100%;
+    padding:10px;
+    border-radius:var(--radius-lg);
+    border:1px solid var(--glass-border-hi);
+    background:color-mix(in oklab, var(--bg-1) 78%, transparent);
+    box-shadow:0 24px 70px rgba(0,0,0,0.6);
+    transform:scale(.97);
+    transition:transform .22s ease;
+  }
+  .lightbox.is-shown .lightbox-panel{transform:scale(1);}
+  .lightbox-panel img{
+    display:block;
+    max-width:100%;
+    max-height:calc(100vh - clamp(52px, 10vw, 116px));
+    width:auto;height:auto;
+    border-radius:calc(var(--radius-lg) - 6px);
+  }
+  .lightbox-close{
+    position:absolute;
+    top:-14px;right:-14px;
+    width:34px;height:34px;
+    border-radius:50%;
+    border:1px solid var(--glass-border-hi);
+    background:var(--bg-1);
+    color:var(--text-0);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:1.1rem;
+    line-height:1;
+    box-shadow:0 4px 14px rgba(0,0,0,0.5);
+    transition:background-color .2s ease;
+  }
+  .lightbox-close:hover{background:#22262c;}
+  .lightbox-caption{
+    margin:9px 2px 1px;
+    text-align:center;
+    font-size:0.76rem;
+    color:var(--text-2);
+  }
+  @media (max-width:680px){
+    .lightbox-close{top:-10px;right:-10px;width:30px;height:30px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .lightbox,.lightbox-panel{transition:none;}
+    .lightbox-panel{transform:none;}
+    .icon-box.is-zoomable{transition:none;}
+    .icon-box.is-zoomable:hover{transform:none;}
+  }
+
+  .product-main{min-width:0;}
+  .product-main .row-top{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .product-main h2{
+    margin:0;
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:1.35rem;
+    letter-spacing:-0.01em;
+  }
+  .badge{
+    font-size:0.6rem;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    color:var(--text-1);
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--glass-border);
+    padding:3px 9px;
+    border-radius:var(--radius-pill);
+    font-weight:600;
+    transform:translateY(-2px);
+  }
+  .product-main .tagline{
+    color:var(--text-1);
+    margin:6px 0 0;
+    font-size:0.95rem;
+    line-height:1.5;
+  }
+
+  .fill-in{
+    color:var(--text-2);
+    border:1px dashed var(--glass-border-hi);
+    border-radius:6px;
+    padding:1px 6px;
+    font-size:0.78em;
+    font-family:var(--font-mono);
+    white-space:nowrap;
+  }
+
+  /* ---------- demo player ---------- */
+  .ab-player{
+    margin-top:20px;
+    padding:18px 18px 16px;
+    border-radius:var(--radius-md);
+    background:linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+    border:1px solid var(--glass-border);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .ab-player .transport{
+    display:flex;
+    align-items:center;
+    gap:15px;
+  }
+  .play-btn{
+    width:42px;height:42px;
+    border-radius:50%;
+    border:1px solid var(--glass-border-hi);
+    background:rgba(255,255,255,0.06);
+    color:var(--text-0);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.12);
+    transition:background-color .2s ease, transform .15s ease, border-color .2s ease;
+  }
+  .play-btn:hover{background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.32); transform:translateY(-1px);}
+  .play-btn:active{transform:translateY(0);}
+  .play-btn svg{width:15px;height:15px;fill:currentColor;display:block;}
+  .play-btn .ic-play{margin-left:2px;}
+  .play-btn .ic-pause{display:none;}
+  .play-btn.is-playing .ic-play{display:none;}
+  .play-btn.is-playing .ic-pause{display:block;margin:0;}
+  .play-btn.is-loading{pointer-events:none;}
+  .play-btn.is-loading svg{display:none;}
+  .play-btn.is-loading::after{
+    content:"";
+    width:15px;height:15px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.2);
+    border-top-color:var(--text-1);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .seek{
+    flex:1;
+    min-width:0;
+    -webkit-appearance:none;
+    appearance:none;
+    height:6px;
+    border-radius:3px;
+    outline:none;
+    cursor:pointer;
+    background-color:rgba(255,255,255,0.1);
+    background-image:linear-gradient(90deg, var(--gold), var(--gold-soft));
+    background-repeat:no-repeat;
+    background-size:var(--seek,0%) 100%;
+  }
+  .seek::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:14px;height:14px;
+    border-radius:50%;
+    background:var(--text-0);
+    box-shadow:0 1px 3px rgba(0,0,0,0.4);
+    cursor:pointer;
+  }
+  .seek::-moz-range-thumb{
+    width:14px;height:14px;
+    border:none;
+    border-radius:50%;
+    background:var(--text-0);
+    box-shadow:0 1px 3px rgba(0,0,0,0.4);
+    cursor:pointer;
+  }
+
+  .time{
+    font-family:var(--font-mono);
+    font-variant-numeric:tabular-nums;
+    font-size:0.72rem;
+    color:var(--text-2);
+    width:78px;
+    text-align:right;
+    flex-shrink:0;
+    letter-spacing:0.01em;
+    white-space:nowrap;
+  }
+  @media (max-width:680px){
+    .ab-player .transport{gap:11px;}
+    .time{font-size:0.68rem;width:72px;}
+  }
+
+  /* ---------- dry / wet blend slider ---------- */
+  .blend{
+    margin-top:18px;
+  }
+  .blend-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:11px;
+  }
+  .blend-side{
+    font-family:var(--font-mono);
+    font-size:0.64rem;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--text-2);
+    transition:color .25s ease;
+  }
+  .blend-side.is-active{color:var(--text-0);}
+  .blend-mix{
+    font-size:0.72rem;
+    color:var(--text-1);
+    letter-spacing:0.02em;
+    white-space:nowrap;
+  }
+  .blend-mix b{
+    font-weight:600;
+    color:var(--gold-soft);
+    font-variant-numeric:tabular-nums;
+  }
+  .blend-range{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:6px;
+    border-radius:3px;
+    outline:none;
+    cursor:pointer;
+    background:linear-gradient(90deg, rgba(255,255,255,0.14), var(--gold));
+    box-shadow:inset 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .blend-range::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:20px;height:20px;
+    border-radius:50%;
+    background:var(--text-0);
+    border:1px solid rgba(0,0,0,0.15);
+    box-shadow:0 2px 6px rgba(0,0,0,0.45);
+    cursor:grab;
+  }
+  .blend-range::-webkit-slider-thumb:active{cursor:grabbing;}
+  .blend-range::-moz-range-thumb{
+    width:20px;height:20px;
+    border-radius:50%;
+    background:var(--text-0);
+    border:1px solid rgba(0,0,0,0.15);
+    box-shadow:0 2px 6px rgba(0,0,0,0.45);
+    cursor:grab;
+  }
+  .blend-hint{
+    text-align:center;
+    font-size:0.72rem;
+    color:var(--text-2);
+    margin:12px 0 0;
+    line-height:1.4;
+  }
+
+  /* ---------- purchase column ---------- */
+  .purchase{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:12px;
+    min-width:150px;
+  }
+  @media (max-width:680px){
+    .purchase{
+      flex-direction:row;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-top:6px;
+      padding-top:18px;
+      border-top:1px solid var(--glass-border);
+    }
+    .purchase .buy-btn{flex:1;padding:13px 28px;font-size:0.95rem;}
+  }
+  .price{
+    font-family:var(--font-display);
+    font-size:1.45rem;
+    font-weight:600;
+    color:var(--text-0);
+    letter-spacing:-0.01em;
+  }
+  .buy-btn{
+    padding:11px 26px;
+    border-radius:var(--radius-pill);
+    border:1px solid var(--gold);
+    background:var(--gold);
+    color:#1a1305;
+    font-weight:600;
+    font-size:0.9rem;
+    letter-spacing:0.01em;
+    cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);
+    transition:transform .15s ease, background-color .2s ease;
+    white-space:nowrap;
+  }
+  .buy-btn:hover{
+    transform:translateY(-1px);
+    background:var(--gold-soft);
+  }
+  .buy-btn:active{transform:translateY(0);}
+
+  .learn-more{
+    font-size:0.8rem;
+    color:var(--text-2);
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .learn-more:hover{color:var(--text-0);}
+
+  /* ---------- checkout modal ---------- */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(4,5,6,0.7);
+    backdrop-filter:blur(6px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:24px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    width:min(560px, 100%);
+    max-height:88vh;
+    display:flex;
+    flex-direction:column;
+    padding:0;
+    overflow:hidden;
+  }
+  .modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 20px;
+    border-bottom:1px solid var(--glass-border);
+  }
+  .modal-head span{font-weight:700;}
+  .modal-close{
+    background:none;
+    border:none;
+    color:var(--text-1);
+    font-size:1.3rem;
+    cursor:pointer;
+    line-height:1;
+  }
+  .modal-close:hover{color:var(--gold-soft);}
+  .modal-body{
+    flex:1;
+    min-height:520px;
+    background:#0a0b0c;
+  }
+  .modal-body iframe{
+    width:100%;
+    height:100%;
+    min-height:520px;
+    border:none;
+  }
+  .modal-fallback{
+    padding:18px 20px;
+    font-size:0.82rem;
+    color:var(--text-2);
+    border-top:1px solid var(--glass-border);
+    text-align:center;
+  }
+  .modal-fallback a{color:var(--gold-soft); text-decoration:underline;}
+
+  footer{
+    text-align:center;
+    color:var(--text-2);
+    font-size:0.8rem;
+    margin-top:72px;
+    padding-bottom:env(safe-area-inset-bottom);
+    line-height:1.6;
+  }
+
+  /* ---------- toast (replaces blocking alert) ---------- */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:calc(28px + env(safe-area-inset-bottom));
+    transform:translateX(-50%) translateY(24px);
+    z-index:200;
+    max-width:min(440px, calc(100vw - 32px));
+    padding:14px 20px;
+    border-radius:var(--radius-md);
+    font-size:0.9rem;
+    line-height:1.45;
+    color:var(--text-0);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s ease, transform .3s var(--ease, ease);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .toast a{color:var(--gold-soft);text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+
+  /* ---------- motion / accessibility ---------- */
+  @media (prefers-reduced-motion:reduce){
+    *{scroll-behavior:auto !important;}
+    .glass{transform:none !important;}
+    .bg-frame{transition:none;}
+    .play-btn.is-loading::after{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- hydrated background: the exact scroll-scrub frame from index.html, handed
+       off via sessionStorage right before the "Explore Sprizzle VSTs" click.
+       Kicked off inline, as early as possible, so it paints before the rest
+       of the page even parses. Falls back to the plain gradient below if no
+       handoff is present (direct visit, expired handoff, storage blocked). -->
+  <img id="bgFrame" class="bg-frame" alt="" aria-hidden="true">
+  <div class="bg-scrim" aria-hidden="true"></div>
+  <script>
+  (function(){
+    try {
+      var raw = sessionStorage.getItem('sprizzleBgHandoff');
+      if (!raw) return;
+      sessionStorage.removeItem('sprizzleBgHandoff');
+      var data = JSON.parse(raw);
+      var SEQ_META = {
+        desktop: { dir: 'assets/seq60-desktop', n: 898 },
+        mobile:  { dir: 'assets/seq60-mobile',  n: 898 },
+      };
+      var meta = data && SEQ_META[data.source];
+      if (!meta || typeof data.frame !== 'number') return;
+      if (!data.ts || Date.now() - data.ts > 30000) return; // stale handoff, ignore
+      var idx = Math.min(meta.n - 1, Math.max(0, data.frame));
+      var path = meta.dir + '/f' + String(idx + 1).padStart(4, '0') + '.webp';
+      var img = document.getElementById('bgFrame');
+      img.addEventListener('load', function(){ img.classList.add('is-visible'); });
+      img.src = path;
+    } catch (_) {
+      // sessionStorage unavailable (private mode, etc.) — plain gradient stands in
+    }
+  })();
+  </script>
+
+  <!-- liquid-lens refraction filter, cloned from index.html: filled by JS at boot -->
+  <svg class="sr-only-svg" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="liquid-lens" x="-20%" y="-20%" width="140%" height="140%">
+        <feImage id="liquidLensImg" result="map" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none"/>
+        <feDisplacementMap in="SourceGraphic" in2="map" scale="60" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="glow-blob a"></div>
+  <div class="glow-blob b"></div>
+  <div class="glow-blob c"></div>
+
+  <div class="wrap">
+
+    <header class="top glass" style="border-radius:var(--radius-pill); padding:12px 22px;">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h2.5l2-6 4 16 3-13 2 5H21"/></svg>
+        </span>
+        <a href="#" id="back-link">
+        <img class="brand-logo" src="assets/favicon.svg" alt="Sprizzle">
+        </a>
+        <span>Audio</span>
+        <script>
+document.getElementById('back-link').addEventListener('click', function(event) {
+    // Prevent the default behavior of jumping to the top of the page (#)
+    event.preventDefault(); 
+    
+    // Trigger the native browser back action
+    window.history.back(); 
+});
+</script>
+      </div>
+      <nav> <!--old mailto:spryte@sprizzle.io-->
+        <a href="https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&to=spryte@sprizzle.io" class="nav-mail">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          Support
+        </a>
+      </nav>
+    </header>
+
+    <section class="hero glass">
+      <span class="eyebrow">Studio-grade plugins</span>
+      <h1>VST Plugins</h1>
+      <p>Browse the collection and blend each demo from dry to fully processed in real time — then buy straight through secure checkout.</p>
+    </section>
+
+    <section class="products" id="products">
+
+      <!-- ============================================================
+           PRODUCT ROW TEMPLATE — copy everything from
+           "PRODUCT ROW START" to "PRODUCT ROW END" to add a new plugin.
+           Search for "FILL IN" to find every spot that needs your data.
+           ============================================================ -->
+ <!-- 1st PRODUCT ROW START -->
+      <article class="product-row glass" data-checkout-mode="redirect">
+
+        <div class="icon-box">
+          <!-- FILL IN: swap this <img> for your plugin icon (a square image looks best) -->
+          <img src="assets/plugins/Demoncore2picture.PNG" alt="DC II plugin icon" width="96" height="96">
+        </div>
+<div class="icon-box">
+          <!-- FILL IN: swap this <img> for your plugin icon (a square image looks best) -->
+          <img src="assets/plugins/demoncore2 expanded.PNG" alt="DC II plugin icon" width="96" height="96">
+        </div>
+        <div class="product-main">
+          <div class="row-top">
+            <h2>DEMON CORE II</h2>
+            <span class="badge">New</span>
+          </div>
+          <p class="tagline">
+            <!-- FILL IN: one or two sentence plugin description -->
+            Talkbox-style vocal resynthesis and ML-backed auto-harmonization.
+          </p>
+
+          <!-- data-wet = display name for the processed signal (used in the blend labels) -->
+          <div class="ab-player" data-plugin="demoncore2" data-wet="DemonCore2">
+            <!-- FILL IN: point these two <audio> sources at your dry/processed demo files -->
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="blend">
+              <div class="blend-head">
+                <span class="blend-side blend-dry is-active">Dry</span>
+                <span class="blend-mix"><b class="wetpct">0</b>% processed</span>
+                <span class="blend-side blend-wet">DEMON CORE</span>
+              </div>
+              <input type="range" class="blend-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              <p class="blend-hint">Drag to blend the raw signal against Demon Core II — both stems stay perfectly in sync.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="purchase">
+          <span class="price"><!-- FILL IN: price -->$300</span>
+          <button class="buy-btn"
+                  type="button"
+                  data-checkout-url="FILL-IN-your-stripe-checkout-url">
+            Buy Now
+          </button>
+          <!-- FOR WHEN PRODUCT PAGES ARE DONE <a class="learn-more fill-in" href="#">FILL IN: product page link</a> -->
+        </div>
+
+      </article>
+      <!-- PRODUCT ROW END -->
+
+      <!-- PRODUCT ROW START -->
+      <article class="product-row glass" data-checkout-mode="redirect">
+
+        <div class="icon-box">
+          <!-- FILL IN: swap this <img> for your plugin icon (a square image looks best) -->
+          <img src="assets/plugins/dextrodelaypicture.PNG" alt="NeuronLink plugin icon" width="96" height="96">
+        </div>
+
+        <div class="product-main">
+          <div class="row-top">
+            <h2>DEXTRO DELAY</h2>
+            <span class="badge">New</span>
+          </div>
+          <p class="tagline">
+            <!-- FILL IN: one or two sentence plugin description -->
+            Tired of routing sidechain buses? This delay sidechains itself like a good little bot. Inspired by NyQuil
+          </p>
+
+          <!-- data-wet = display name for the processed signal (used in the blend labels) -->
+          <div class="ab-player" data-plugin="dextrodelay" data-wet="DextroDelay">
+            <!-- FILL IN: point these two <audio> sources at your dry/processed demo files -->
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="blend">
+              <div class="blend-head">
+                <span class="blend-side blend-dry is-active">Dry</span>
+                <span class="blend-mix"><b class="wetpct">0</b>% processed</span>
+                <span class="blend-side blend-wet">DEXTRO DELAY</span>
+              </div>
+              <input type="range" class="blend-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              <p class="blend-hint">Drag to blend the raw signal against Dextro Delay — both stems stay perfectly in sync.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="purchase">
+          <span class="price"><!-- FILL IN: price -->FREE</span>
+          <button class="buy-btn"
+                  type="button"
+                  data-checkout-url="FILL-IN-your-stripe-checkout-url">
+            Download Now
+          </button>
+          <!-- FOR WHEN PRODUCT PAGES ARE DONE <a class="learn-more fill-in" href="#">FILL IN: product page link</a> -->
+        </div>
+
+      </article>
+      <!-- PRODUCT ROW END -->
+
+      
+<!-- PRODUCT ROW START -->
+      <article class="product-row glass" data-checkout-mode="redirect">
+
+        <div class="icon-box">
+          <!-- FILL IN: swap this <img> for your plugin icon (a square image looks best) -->
+          <img src="assets/plugins/demoncore1 blue.PNG" alt="NLDemon Core plugin icon" width="96" height="96">
+        </div>
+<div class="icon-box">
+          <!-- FILL IN: swap this <img> for your plugin icon (a square image looks best) -->
+          <img src="assets/plugins/demoncore1 red.PNG" alt="NLDemon Core plugin icon" width="96" height="96">
+        </div>
+        
+        <div class="product-main">
+          <div class="row-top">
+            <h2>NeuronLink Demon Core</h2>
+            <span class="badge">New</span>
+          </div>
+          <p class="tagline">
+            <!-- FILL IN: one or two sentence plugin description -->
+            Use machine learning in "DEMON MODE" to predict & generate harmonies while feeding each voice through its own instance of Neuralink.
+          </p>
+
+          <!-- data-wet = display name for the processed signal (used in the blend labels) -->
+          <div class="ab-player" data-plugin="demon mode" data-wet="DEMON MODE">
+            <!-- FILL IN: point these two <audio> sources at your dry/processed demo files -->
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="blend">
+              <div class="blend-head">
+                <span class="blend-side blend-dry is-active">Dry</span>
+                <span class="blend-mix"><b class="wetpct">0</b>% processed</span>
+                <span class="blend-side blend-wet">DEMON MODE</span>
+              </div>
+              <input type="range" class="blend-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              <p class="blend-hint">Drag to blend the raw signal against NeuronLink — both stems stay perfectly in sync.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="purchase">
+          <span class="price"><!-- FILL IN: price -->$125</span>
+          <button class="buy-btn"
+                  type="button"
+                  data-checkout-url="FILL-IN-your-stripe-checkout-url">
+            Buy Now
+          </button>
+          <!-- FOR WHEN PRODUCT PAGES ARE DONE <a class="learn-more fill-in" href="#">FILL IN: product page link</a> -->
+        </div>
+
+      </article>
+      <!-- PRODUCT ROW END -->
+
+      <!-- PRODUCT ROW START -->
+      <article class="product-row glass" data-checkout-mode="redirect">
+
+        <div class="icon-box">
+          <!-- FILL IN: swap this <img> for your plugin icon (a square image looks best) -->
+          <img src="vsts/neuronlink/neuralinkpicture.PNG" alt="NeuronLink plugin icon" width="96" height="96">
+        </div>
+
+        <div class="product-main">
+          <div class="row-top">
+            <h2>NeuronLink</h2>
+            <span class="badge">New</span>
+          </div>
+          <p class="tagline">
+            <!-- FILL IN: one or two sentence plugin description -->
+            Pitch-tracked ring modulator with relative tuning.
+          </p>
+
+          <!-- data-wet = display name for the processed signal (used in the blend labels) -->
+          <div class="ab-player" data-plugin="neuronlink" data-wet="NeuronLink">
+            <!-- FILL IN: point these two <audio> sources at your dry/processed demo files -->
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="blend">
+              <div class="blend-head">
+                <span class="blend-side blend-dry is-active">Dry</span>
+                <span class="blend-mix"><b class="wetpct">0</b>% processed</span>
+                <span class="blend-side blend-wet">NeuronLink</span>
+              </div>
+              <input type="range" class="blend-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              <p class="blend-hint">Drag to blend the raw signal against NeuronLink — both stems stay perfectly in sync.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="purchase">
+          <span class="price"><!-- FILL IN: price -->$50</span>
+          <button class="buy-btn"
+                  type="button"
+                  data-checkout-url="FILL-IN-your-stripe-checkout-url">
+            Buy Now
+          </button>
+          <!-- FOR WHEN PRODUCT PAGES ARE DONE <a class="learn-more fill-in" href="#">FILL IN: product page link</a> -->
+        </div>
+
+      </article>
+      <!-- PRODUCT ROW END -->
+
+      <!--
+        To add another plugin: duplicate the block from "PRODUCT ROW START"
+        to "PRODUCT ROW END" above, paste it below this comment, then update:
+          - icon, name, badge, tagline
+          - the two <audio><source src="..."> paths
+          - price
+          - data-checkout-url on the Buy Now button (Stripe checkout link)
+          - the learn-more link
+        Everything else (playback, blend slider, buy button wiring) works
+        automatically for any element with class "product-row".
+      -->
+
+    </section>
+
+    <footer>
+      <!-- FILL IN: footer text / copyright -->
+      © 2026 Sprizzle Audio. All plugins sold as-is, digital delivery only.
+    </footer>
+
+  </div>
+
+  <!-- lightweight non-blocking toast (replaces the old alert) -->
+  <div class="toast glass" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- image lightbox: click any product image to enlarge it in place. Deliberately
+       not .glass — the glass panels get a pointer-parallax transform, which would
+       fight this panel's centring. -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged plugin image">
+    <div class="lightbox-panel" id="lightboxPanel">
+      <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close image">&times;</button>
+      <img id="lightboxImg" src="" alt="">
+      <p class="lightbox-caption" id="lightboxCaption"></p>
+    </div>
+  </div>
+
+  <!--
+    IFRAME CHECKOUT MODAL — disabled for now.
+    Stripe Checkout blocks being iframed, so all Buy Now buttons currently
+    redirect straight to the Stripe checkout URL in data-checkout-url.
+    If NMI's hosted payment page is later configured to allow framing,
+    uncomment this modal block AND the matching JS block below, then set
+    data-embed="iframe" on whichever buy-btn should use it.
+
+  <div class="modal-overlay" id="checkoutModal">
+    <div class="modal-box glass">
+      <div class="modal-head">
+        <span>Checkout</span>
+        <button class="modal-close" id="modalClose" aria-label="Close checkout">&times;</button>
+      </div>
+      <div class="modal-body">
+        <iframe id="checkoutFrame" src="" title="Checkout"></iframe>
+      </div>
+      <div class="modal-fallback">
+        Trouble loading? <a id="modalDirectLink" href="#" target="_blank" rel="noopener">Open checkout in a new tab</a>.
+      </div>
+    </div>
+  </div>
+  -->
+
+<script>
+(function(){
+  "use strict";
+
+  function formatTime(sec){
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  // ---- shared AudioContext (one clock for every player) ----
+  // Both stems of a demo play from this single context, so they are locked to
+  // the same sample clock and can never drift — which is what used to make the
+  // "after" stem stutter on mobile loops and pause/resume (two <audio> elements
+  // re-seeking to catch up). Blending is just a gain crossfade on that clock.
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var sharedCtx = null;
+  var ctxUnlocked = false;
+  function getCtx(){
+    if(!sharedCtx && AudioCtx){
+      try { sharedCtx = new AudioCtx(); } catch(_){ sharedCtx = null; }
+    }
+    return sharedCtx;
+  }
+  // On iOS, Web Audio is (a) suspended until resumed inside a user gesture and
+  // (b) silenced by the physical ring/silent switch UNLESS a media element is
+  // also playing. So on first interaction we resume the context AND start a
+  // tiny looping silent <audio>, which flips iOS into playback mode and lets
+  // the Web Audio graph sound through the mute switch. (Same trick howler.js uses.)
+  var silentEl = null;
+  function makeSilentAudio(){
+    try {
+      var sr = 8000, n = sr / 2;                 // 0.5s of 8-bit mono silence
+      var buf = new ArrayBuffer(44 + n), dv = new DataView(buf);
+      var w = function(o, s){ for(var i=0;i<s.length;i++) dv.setUint8(o+i, s.charCodeAt(i)); };
+      w(0,"RIFF"); dv.setUint32(4, 36+n, true); w(8,"WAVE"); w(12,"fmt ");
+      dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+      dv.setUint32(24,sr,true); dv.setUint32(28,sr,true); dv.setUint16(32,1,true); dv.setUint16(34,8,true);
+      w(36,"data"); dv.setUint32(40,n,true);
+      for(var i=0;i<n;i++) dv.setUint8(44+i, 128); // 128 = silence for unsigned 8-bit
+      var a = new Audio();
+      a.loop = true; a.preload = "auto"; a.setAttribute("playsinline","");
+      a.src = URL.createObjectURL(new Blob([buf], { type:"audio/wav" }));
+      return a;
+    } catch(_){ return null; }
+  }
+  function unlockCtx(){
+    var c = getCtx();
+    if(c){
+      if(c.state === "suspended") c.resume();
+      if(!ctxUnlocked){
+        try {
+          var b = c.createBuffer(1, 1, 22050);
+          var s = c.createBufferSource();
+          s.buffer = b; s.connect(c.destination); s.start(0);
+        } catch(_){}
+      }
+    }
+    if(!ctxUnlocked){
+      if(!silentEl) silentEl = makeSilentAudio();
+      if(silentEl){ var pr = silentEl.play(); if(pr && pr.catch) pr.catch(function(){}); }
+      ctxUnlocked = true;
+    }
+  }
+  ["pointerdown","touchstart","keydown"].forEach(function(ev){
+    window.addEventListener(ev, unlockCtx, { passive:true });
+  });
+
+  function sourceUrl(audioEl){
+    var s = audioEl && audioEl.querySelector("source");
+    return s ? s.getAttribute("src") : (audioEl ? audioEl.currentSrc : "");
+  }
+
+  // ---- wire up every demo player ----
+  document.querySelectorAll(".ab-player").forEach(function(player){
+    var beforeEl = player.querySelector(".audio-before");
+    var afterEl  = player.querySelector(".audio-after");
+    var playBtn  = player.querySelector(".play-btn");
+    var seek     = player.querySelector(".seek");
+    var curEl    = player.querySelector(".cur");
+    var durEl    = player.querySelector(".dur");
+    var blendRange = player.querySelector(".blend-range");
+    var wetPctEl = player.querySelector(".wetpct");
+    var dryLabel = player.querySelector(".blend-dry");
+    var wetLabel = player.querySelector(".blend-wet");
+
+    var beforeUrl = sourceUrl(beforeEl);
+    var afterUrl  = sourceUrl(afterEl);
+
+    var blend = 0;   // 0 = fully dry (before), 1 = fully processed (after)
+    var isSeeking = false;
+
+    // equal-power crossfade keeps perceived loudness flat across the blend
+    function gains(b){ return { dry: Math.cos(b * Math.PI / 2), wet: Math.sin(b * Math.PI / 2) }; }
+
+    function setPlayIcon(on){ playBtn.classList.toggle("is-playing", on); }
+    function setLoading(on){ playBtn.classList.toggle("is-loading", on); }
+    function setSeekFill(frac){ if(seek) seek.style.setProperty("--seek", (frac * 100) + "%"); }
+
+    function updateBlendUI(){
+      var pct = Math.round(blend * 100);
+      if(wetPctEl) wetPctEl.textContent = pct;
+      if(dryLabel) dryLabel.classList.toggle("is-active", blend <= 0.5);
+      if(wetLabel) wetLabel.classList.toggle("is-active", blend > 0.5);
+    }
+
+    // ===== Web Audio engine (preferred) =====
+    var ctx = null, engine = null;         // engine: "wa" | "fallback"
+    var dryBuf = null, wetBuf = null;
+    var loaded = false, loading = null, decodeFailed = false;
+    var srcDry = null, srcWet = null, gDry = null, gWet = null;
+    var duration = 0, startCtxTime = 0, startOffset = 0, playing = false, rafId = null;
+
+    function loadBuffers(){
+      if(loaded || decodeFailed) return Promise.resolve();
+      if(loading) return loading;
+      ctx = getCtx();
+      if(!ctx || !beforeUrl || !afterUrl){ decodeFailed = true; return Promise.resolve(); }
+      loading = Promise.all([beforeUrl, afterUrl].map(function(u){
+        return fetch(u).then(function(r){ return r.arrayBuffer(); })
+          .then(function(ab){
+            return new Promise(function(res, rej){ ctx.decodeAudioData(ab, res, rej); });
+          });
+      })).then(function(bufs){
+        dryBuf = bufs[0]; wetBuf = bufs[1];
+        duration = Math.min(dryBuf.duration, wetBuf.duration);
+        loaded = true;
+        if(durEl) durEl.textContent = formatTime(duration);
+      }).catch(function(){ decodeFailed = true; });
+      return loading;
+    }
+
+    function currentPos(){
+      if(!playing) return startOffset;
+      var t = startOffset + (ctx.currentTime - startCtxTime);
+      return duration > 0 ? t % duration : t;
+    }
+
+    function stopSources(){
+      [srcDry, srcWet].forEach(function(s){
+        if(s){ try{ s.stop(); }catch(_){} try{ s.disconnect(); }catch(_){} }
+      });
+      srcDry = srcWet = null;
+    }
+
+    function startWAAt(offset){
+      stopSources();
+      var g = gains(blend);
+      gDry = ctx.createGain(); gDry.gain.value = g.dry; gDry.connect(ctx.destination);
+      gWet = ctx.createGain(); gWet.gain.value = g.wet; gWet.connect(ctx.destination);
+      srcDry = ctx.createBufferSource(); srcDry.buffer = dryBuf;
+      srcWet = ctx.createBufferSource(); srcWet.buffer = wetBuf;
+      // loop both over the SAME length so their loop points stay sample-aligned
+      srcDry.loop = srcWet.loop = true;
+      srcDry.loopStart = srcWet.loopStart = 0;
+      srcDry.loopEnd = srcWet.loopEnd = duration;
+      srcDry.connect(gDry); srcWet.connect(gWet);
+      var off = duration > 0 ? (offset % duration) : 0;
+      var when = ctx.currentTime + 0.03;
+      srcDry.start(when, off); srcWet.start(when, off);
+      startCtxTime = when; startOffset = off; playing = true;
+    }
+
+    function applyBlendWA(ramp){
+      if(!playing || !gDry || !gWet || !ctx) return;
+      var g = gains(blend), t = ctx.currentTime;
+      gDry.gain.setTargetAtTime(g.dry, t, ramp ? 0.03 : 0.0001);
+      gWet.gain.setTargetAtTime(g.wet, t, ramp ? 0.03 : 0.0001);
+    }
+
+    function tickProgress(){
+      rafId = requestAnimationFrame(tickProgress);
+      if(isSeeking || !playing || duration <= 0) return;
+      var pos = currentPos();
+      if(curEl) curEl.textContent = formatTime(pos);
+      var frac = pos / duration;
+      if(seek) seek.value = Math.round(frac * 1000);
+      setSeekFill(frac);
+    }
+
+    // ===== fallback engine (<audio> volume crossfade) =====
+    var fbPlaying = false;
+    function fbApplyBlend(){
+      var g = gains(blend);
+      beforeEl.volume = g.dry; afterEl.volume = g.wet;
+      beforeEl.muted = afterEl.muted = false;
+    }
+    function fallbackPlay(){
+      engine = "fallback";
+      fbApplyBlend();
+      afterEl.currentTime = beforeEl.currentTime;
+      Promise.all([beforeEl.play(), afterEl.play()]).catch(function(){});
+      fbPlaying = true; setPlayIcon(true);
+    }
+    function fallbackPause(){ beforeEl.pause(); afterEl.pause(); fbPlaying = false; setPlayIcon(false); }
+    beforeEl.addEventListener("loadedmetadata", function(){
+      if(engine !== "wa" && durEl) durEl.textContent = formatTime(beforeEl.duration);
+    });
+    beforeEl.addEventListener("timeupdate", function(){
+      if(engine !== "fallback" || isSeeking) return;
+      if(curEl) curEl.textContent = formatTime(beforeEl.currentTime);
+      if(beforeEl.duration && seek){
+        var frac = beforeEl.currentTime / beforeEl.duration;
+        seek.value = Math.round(frac * 1000); setSeekFill(frac);
+      }
+      if(Math.abs(beforeEl.currentTime - afterEl.currentTime) > 0.15) afterEl.currentTime = beforeEl.currentTime;
+    });
+
+    // ===== unified controls =====
+    function isActive(){ return engine === "fallback" ? fbPlaying : playing; }
+    function play(){
+      unlockCtx();
+      setLoading(true);
+      loadBuffers().then(function(){
+        setLoading(false);
+        if(decodeFailed){ fallbackPlay(); return; }
+        engine = "wa";
+        if(ctx.state === "suspended") ctx.resume();
+        startWAAt(currentPos());
+        setPlayIcon(true);
+        if(rafId == null) tickProgress();
+      });
+    }
+    function pause(){
+      if(engine === "fallback"){ fallbackPause(); return; }
+      if(!playing) return;
+      startOffset = currentPos();
+      stopSources();
+      playing = false;
+      setPlayIcon(false);
+    }
+    playBtn.addEventListener("click", function(){ if(isActive()) pause(); else play(); });
+
+    // ===== blend slider =====
+    if(blendRange){
+      blendRange.addEventListener("input", function(){
+        blend = Math.min(1, Math.max(0, Number(blendRange.value) / 100));
+        updateBlendUI();
+        if(engine === "fallback") fbApplyBlend(); else applyBlendWA(true);
+      });
+    }
+    updateBlendUI();
+
+    // ===== seek =====
+    if(seek){
+      setSeekFill(0);
+      seek.addEventListener("input", function(){ isSeeking = true; setSeekFill(Number(seek.value) / 1000); });
+      seek.addEventListener("change", function(){
+        var frac = Number(seek.value) / 1000;
+        if(engine === "fallback"){
+          if(beforeEl.duration){ beforeEl.currentTime = frac * beforeEl.duration; afterEl.currentTime = beforeEl.currentTime; }
+        } else if(loaded){
+          var off = frac * duration;
+          startOffset = off;
+          if(playing) startWAAt(off);
+          if(curEl) curEl.textContent = formatTime(off);
+        }
+        isSeeking = false;
+      });
+    }
+  });
+
+  // ---- toast (non-blocking replacement for alert) ----
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function showToast(html){
+    if(!toastEl) return;
+    toastEl.innerHTML = html;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 6000);
+  }
+
+  // ---- wire up every Buy Now button ----
+  // For now: every buy-btn redirects straight to its Stripe checkout URL.
+  // data-embed="iframe" is ignored until the iframe modal below is
+  // re-enabled (see the commented-out modal HTML above this <script>).
+  document.querySelectorAll(".buy-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var url = btn.getAttribute("data-checkout-url");
+
+      if(!url || url.indexOf("FILL-IN") === 0){
+        showToast('Checkout isn\'t live yet — email <a href="mailto:spryte@sprizzle.io">spryte@sprizzle.io</a> to purchase.');
+        return;
+      }
+
+      window.location.href = url;
+    });
+  });
+
+  /*
+  // ---- IFRAME CHECKOUT (disabled) ----
+  // Uncomment this block along with the modal HTML above once NMI (or
+  // another processor) confirms their hosted page allows framing, then
+  // swap the redirect logic above back to the mode-aware version:
+  //
+  //   var mode = btn.getAttribute("data-embed") || "redirect";
+  //   if(mode === "iframe"){
+  //     frame.src = url;
+  //     directLink.href = url;
+  //     modal.classList.add("open");
+  //   } else {
+  //     window.location.href = url;
+  //   }
+
+  var modal = document.getElementById("checkoutModal");
+  var frame = document.getElementById("checkoutFrame");
+  var directLink = document.getElementById("modalDirectLink");
+  var modalClose = document.getElementById("modalClose");
+
+  function closeModal(){
+    modal.classList.remove("open");
+    frame.src = "";
+  }
+  modalClose.addEventListener("click", closeModal);
+  modal.addEventListener("click", function(e){
+    if(e.target === modal) closeModal();
+  });
+  */
+
+  // ---- group each row's icon boxes so multiple images stack down the column ----
+  // Every .icon-box is assigned the same named grid area, so pasting a second one
+  // drops it in the same cell as the first and only the last stays visible. Wrap
+  // whatever boxes a row has in a single .icon-stack, which takes the grid area
+  // and lays them out vertically — so adding an image stays a copy-paste job.
+  document.querySelectorAll(".product-row").forEach(function(row){
+    var boxes = Array.prototype.filter.call(row.children, function(el){
+      return el.classList && el.classList.contains("icon-box");
+    });
+    if(!boxes.length) return;
+    var stack = document.createElement("div");
+    stack.className = "icon-stack";
+    boxes[0].before(stack);                       // keep the column's original position
+    boxes.forEach(function(bx){ stack.appendChild(bx); });
+  });
+
+  // ---- image lightbox ----
+  // Clicking a product image opens it enlarged in a panel over the page (not a new
+  // tab, not the Fullscreen API); clicking anywhere outside the picture closes it.
+  var lightbox = document.getElementById("lightbox");
+  var lbPanel = document.getElementById("lightboxPanel");
+  var lbImg = document.getElementById("lightboxImg");
+  var lbCaption = document.getElementById("lightboxCaption");
+  var lbClose = document.getElementById("lightboxClose");
+  var lbReturnFocus = null;
+  var lbScrollY = 0;
+
+  function openLightbox(src, caption, opener){
+    if(!lightbox) return;
+    lbReturnFocus = opener || null;
+    lbImg.src = src;
+    lbImg.alt = (opener && opener.querySelector("img") && opener.querySelector("img").alt) || "";
+    lbCaption.textContent = caption || "";
+    lbCaption.hidden = !caption;
+
+    // Lock the page behind the overlay. position:fixed rather than overflow:hidden
+    // so iOS doesn't scroll the body underneath while the lightbox is up.
+    lbScrollY = window.scrollY;
+    var sbw = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.position = "fixed";
+    document.body.style.top = -lbScrollY + "px";
+    document.body.style.width = "100%";
+    if(sbw > 0) document.body.style.paddingRight = sbw + "px";
+
+    lightbox.classList.add("is-open");
+    requestAnimationFrame(function(){ lightbox.classList.add("is-shown"); });
+    lbClose.focus();
+  }
+
+  function closeLightbox(){
+    if(!lightbox || !lightbox.classList.contains("is-open")) return;
+    lightbox.classList.remove("is-shown");
+
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.width = "";
+    document.body.style.paddingRight = "";
+    window.scrollTo(0, lbScrollY);
+
+    var done = function(){
+      lightbox.classList.remove("is-open");
+      lbImg.src = "";
+      if(lbReturnFocus && lbReturnFocus.focus) lbReturnFocus.focus();
+      lbReturnFocus = null;
+    };
+    // wait out the fade, but never strand the overlay if the transition doesn't fire
+    var fired = false;
+    lightbox.addEventListener("transitionend", function once(e){
+      if(e.target !== lightbox || fired) return;
+      fired = true; lightbox.removeEventListener("transitionend", once); done();
+    });
+    setTimeout(function(){ if(!fired){ fired = true; done(); } }, 320);
+  }
+
+  document.querySelectorAll(".icon-box").forEach(function(box){
+    var img = box.querySelector("img");
+    if(!img) return;
+    box.classList.add("is-zoomable");
+    box.setAttribute("role", "button");
+    box.setAttribute("tabindex", "0");
+    box.setAttribute("aria-label", "Enlarge image" + (img.alt ? ": " + img.alt : ""));
+    // caption: data-caption on the <img> if you want one, else none. (alt stays
+    // the screen-reader text; it's usually phrased for that, not for display.)
+    var open = function(){ openLightbox(img.currentSrc || img.src, img.dataset.caption || "", box); };
+    box.addEventListener("click", open);
+    box.addEventListener("keydown", function(e){
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); }
+    });
+  });
+
+  // click outside the picture closes; clicks on the panel itself do not
+  lightbox.addEventListener("click", function(e){
+    if(!lbPanel.contains(e.target)) closeLightbox();
+  });
+  lbClose.addEventListener("click", closeLightbox);
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape") closeLightbox();
+  });
+
+  // ---- liquid-lens displacement map (cloned from index.html) ----
+  // Draws a 256x256 map: neutral gray at center, R/G channels ramp toward the
+  // edges over the outer ~18% border so feDisplacementMap only bends light at
+  // the rim of the glass, not across its whole face.
+  (function buildLiquidLens(){
+    var liquidLensImg = document.getElementById("liquidLensImg");
+    if (!liquidLensImg) return;
+    try {
+      var size = 256;
+      var canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      var ctx = canvas.getContext("2d");
+      var img = ctx.createImageData(size, size);
+      var border = 0.18;
+      for (var y = 0; y < size; y++) {
+        for (var x = 0; x < size; x++) {
+          var nx = x / size, ny = y / size;
+          var d = Math.min(nx, 1 - nx, ny, 1 - ny);
+          var t = d < border ? 1 - d / border : 0;
+          var dx = nx - 0.5, dy = ny - 0.5;
+          var len = Math.hypot(dx, dy) || 1;
+          var r = 128 - (dx / len) * t * 90;
+          var g = 128 - (dy / len) * t * 90;
+          var i = (y * size + x) * 4;
+          img.data[i] = r;
+          img.data[i + 1] = g;
+          img.data[i + 2] = 128;
+          img.data[i + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      var url = canvas.toDataURL("image/png");
+      liquidLensImg.setAttribute("href", url);
+      liquidLensImg.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
+    } catch (_) {
+      // Silently keep plain blur (Safari/Firefox path anyway via @supports gate).
+    }
+  })();
+
+  // ---- liquid-glass parallax + specular (pointer-driven, desktop only) ----
+  var hoverMQ = matchMedia("(hover: hover)");
+  var reducedMotionMQ = matchMedia("(prefers-reduced-motion: reduce)");
+  var reduced = function(){ return reducedMotionMQ.matches; };
+  var clamp1 = function(v){ return v < -1 ? -1 : v > 1 ? 1 : v; };
+
+  // the toast is glass too, but its position is CSS-driven — keep it out of tilt
+  var glassPanels = Array.prototype.slice.call(document.querySelectorAll(".glass:not(.toast)"));
+  var panelState = glassPanels.map(function(){ return { curX:0, curY:0, curR:0, tX:0, tY:0, tR:0 }; });
+
+  var rootStyle = document.documentElement.style;
+  function setSpec(px, py){
+    rootStyle.setProperty("--spec-x", px + "%");
+    rootStyle.setProperty("--spec-y", py + "%");
+  }
+
+  // desktop: per-panel pointer tilt + a specular that rakes across the page
+  if(hoverMQ.matches){
+    var specPending = false;
+    window.addEventListener("pointermove", function(e){
+      if(specPending) return;
+      specPending = true;
+      requestAnimationFrame(function(){
+        setSpec((e.clientX / window.innerWidth) * 100, (e.clientY / window.innerHeight) * 100);
+        specPending = false;
+      });
+    });
+    glassPanels.forEach(function(panel, idx){
+      panel.addEventListener("pointermove", function(e){
+        if(reduced()) return;
+        var rect = panel.getBoundingClientRect();
+        var nx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+        var ny = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+        var st = panelState[idx];
+        st.tX = clamp1(nx) * 6; st.tY = clamp1(ny) * 6; st.tR = clamp1(nx) * 0.6;
+      });
+      panel.addEventListener("pointerleave", function(){
+        var st = panelState[idx]; st.tX = 0; st.tY = 0; st.tR = 0;
+      });
+    });
+  }
+
+  (function tiltLoop(){
+    requestAnimationFrame(tiltLoop);
+    if(reduced()){
+      for(var j = 0; j < glassPanels.length; j++) glassPanels[j].style.transform = "";
+      return;
+    }
+    var k = 0.15;
+    for(var i = 0; i < glassPanels.length; i++){
+      var st = panelState[i], panel = glassPanels[i];
+      st.curX += (st.tX - st.curX) * k;
+      st.curY += (st.tY - st.curY) * k;
+      st.curR += (st.tR - st.curR) * k;
+      if(st.tX === 0 && st.tY === 0 && st.tR === 0 &&
+         Math.abs(st.curX) < 0.01 && Math.abs(st.curY) < 0.01 && Math.abs(st.curR) < 0.001){
+        if(panel.style.transform) panel.style.transform = "";
+      } else {
+        panel.style.transform = "translate(" + st.curX.toFixed(2) + "px, " + st.curY.toFixed(2) + "px) rotate(" + st.curR.toFixed(3) + "deg)";
+      }
+    }
+  })();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sprizzle Audio — Plugins</title>
+<meta name="description" content="Vocal resynthesis, harmonization and modulation plugins by Sprizzle Audio. A/B every demo in the browser.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#08090b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<style>
+  :root{
+    /* FILL IN: background image. Set this to url("assets/your-image.webp") once
+       you have it; the scrim in .backdrop::after keeps text legible over it. */
+    --backdrop-image:none;
+
+    --bg:#08090b;
+    --surface:rgba(15,17,21,0.62);
+    --surface-2:rgba(255,255,255,0.025);
+    --well:#060708;
+    --line:rgba(255,255,255,0.08);
+    --line-hi:rgba(255,255,255,0.16);
+    --text-0:#f3f4f5;
+    --text-1:#b3b7be;
+    --text-2:#767b84;
+    --gold:#d9a441;
+    --gold-soft:#e8bd6b;
+    --ink:#1a1305;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --ease:cubic-bezier(.2,.7,.2,1);
+    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --header-h:64px;
+    --gutter:clamp(16px, 4vw, 40px);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{background:var(--bg);scroll-behavior:smooth;}
+  body{
+    min-height:100vh;
+    min-height:100dvh;
+    background:transparent;
+    color:var(--text-0);
+    font-family:var(--font-sans);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none;}
+  button{font:inherit;color:inherit;}
+  ::selection{background:rgba(217,164,65,0.35);}
+
+  /* ---------- backdrop ---------- */
+  .backdrop{
+    position:fixed;
+    inset:0;
+    z-index:-2;
+    background:var(--backdrop-image) center / cover no-repeat, var(--bg);
+  }
+  .backdrop::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(110% 60% at 50% -12%, rgba(217,164,65,0.07), transparent 62%),
+      linear-gradient(180deg, rgba(8,9,11,0.45), rgba(8,9,11,0.82) 55%, rgba(8,9,11,0.96));
+  }
+  /* film grain over everything, so flat fills read as material rather than CSS */
+  .grain{
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    opacity:.05;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .shell{
+    width:100%;
+    max-width:1160px;
+    margin:0 auto;
+    padding:0 var(--gutter);
+  }
+
+  .label{
+    font-family:var(--font-mono);
+    font-size:0.68rem;
+    font-weight:500;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--text-2);
+  }
+
+  /* ---------- header ---------- */
+  .site-header{
+    position:sticky;
+    top:0;
+    z-index:50;
+    border-bottom:1px solid transparent;
+    transition:background-color .3s ease, border-color .3s ease;
+  }
+  .site-header.is-scrolled{
+    background:rgba(8,9,11,0.72);
+    border-bottom-color:var(--line);
+    -webkit-backdrop-filter:blur(18px) saturate(1.4);
+    backdrop-filter:blur(18px) saturate(1.4);
+  }
+  .site-header .shell{
+    height:var(--header-h);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:var(--font-display);
+    font-size:1rem;
+    font-weight:500;
+    letter-spacing:-0.005em;
+  }
+  .brand img{height:28px;width:auto;display:block;}
+  .brand .brand-sub{color:var(--text-2);font-weight:400;}
+  .site-nav{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .site-nav a{
+    padding:8px 14px;
+    border-radius:999px;
+    font-size:0.88rem;
+    color:var(--text-1);
+    transition:color .2s ease, background-color .2s ease;
+  }
+  .site-nav a:hover{color:var(--text-0);background:rgba(255,255,255,0.05);}
+  .site-nav a.nav-cta{
+    border:1px solid var(--line-hi);
+    color:var(--text-0);
+  }
+  .site-nav a.nav-cta:hover{border-color:rgba(255,255,255,0.28);}
+  @media (max-width:520px){
+    .site-nav .nav-hide-sm{display:none;}
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:clamp(56px, 11vh, 120px) 0 clamp(56px, 9vh, 96px);
+    display:grid;
+    grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr);
+    gap:clamp(32px, 5vw, 64px);
+    align-items:end;
+  }
+  .hero-copy .label{display:block;margin-bottom:22px;}
+  .hero h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:clamp(2.4rem, 5.4vw, 4.1rem);
+    line-height:1.02;
+    letter-spacing:-0.035em;
+    margin:0 0 24px;
+  }
+  .hero h1 .dim{color:var(--text-2);}
+  .hero-lede{
+    max-width:34em;
+    margin:0;
+    font-size:1.06rem;
+    line-height:1.6;
+    color:var(--text-1);
+    text-wrap:pretty;
+  }
+
+  /* the lineup: a spec-sheet style index of every plugin, built from the cards */
+  .lineup{
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    background:var(--surface);
+    -webkit-backdrop-filter:blur(20px) saturate(1.3);
+    backdrop-filter:blur(20px) saturate(1.3);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+    overflow:hidden;
+  }
+  .lineup-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:16px 20px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  .lineup ol{list-style:none;margin:0;padding:6px 0;}
+  .lineup a{
+    display:grid;
+    grid-template-columns:28px 1fr auto;
+    align-items:baseline;
+    gap:12px;
+    padding:11px 20px;
+    transition:background-color .2s ease;
+  }
+  .lineup a:hover{background:rgba(255,255,255,0.035);}
+  .lineup .ix-num{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-2);}
+  .lineup .ix-name{font-size:0.95rem;color:var(--text-0);}
+  .lineup .ix-price{
+    font-family:var(--font-mono);
+    font-size:0.78rem;
+    color:var(--text-1);
+    font-variant-numeric:tabular-nums;
+  }
+  .lineup a:hover .ix-price{color:var(--gold-soft);}
+
+  @media (max-width:860px){
+    .hero{grid-template-columns:1fr;align-items:start;}
+  }
+
+  /* ---------- plugin cards ---------- */
+  .plugins{
+    display:flex;
+    flex-direction:column;
+    gap:clamp(20px, 3vw, 32px);
+    counter-reset:plugin;
+  }
+  .plugin{
+    counter-increment:plugin;
+    scroll-margin-top:calc(var(--header-h) + 20px);
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(0, 1.12fr);
+    gap:clamp(24px, 3.5vw, 44px);
+    padding:clamp(16px, 2.2vw, 24px);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    background:var(--surface);
+    -webkit-backdrop-filter:blur(20px) saturate(1.3);
+    backdrop-filter:blur(20px) saturate(1.3);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      0 30px 60px -30px rgba(0,0,0,0.6);
+    transition:border-color .3s ease;
+  }
+  .plugin:hover{border-color:rgba(255,255,255,0.12);}
+  .plugin.is-playing{border-color:rgba(217,164,65,0.28);}
+  @media (max-width:860px){
+    .plugin{grid-template-columns:1fr;}
+  }
+
+  /* media: drop one or more <img> into .media; the script turns the first into
+     the stage and the rest into a thumbnail strip */
+  .media{display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .media > img{width:100%;height:auto;display:block;border-radius:var(--radius-md);}
+  .media-stage{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    aspect-ratio:4 / 3;
+    padding:clamp(10px, 2vw, 20px);
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    background:
+      radial-gradient(80% 70% at 50% 40%, rgba(255,255,255,0.04), transparent 70%),
+      var(--well);
+    cursor:zoom-in;
+    overflow:hidden;
+  }
+  .media-stage img{
+    max-width:100%;
+    max-height:100%;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+    display:block;
+    border-radius:6px;
+    box-shadow:0 18px 40px rgba(0,0,0,0.55);
+    transition:transform .5s var(--ease);
+  }
+  .media-stage:hover img{transform:scale(1.015);}
+  .media-stage .zoom{
+    position:absolute;
+    right:12px;
+    bottom:12px;
+    width:30px;height:30px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    background:rgba(8,9,11,0.7);
+    border:1px solid var(--line-hi);
+    color:var(--text-1);
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .media-stage .zoom svg{width:14px;height:14px;}
+  .media-stage:hover .zoom,
+  .media-stage:focus-visible .zoom{opacity:1;}
+  .media-stage:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+  @media (hover:none){ .media-stage .zoom{opacity:1;} }
+
+  .media-thumbs{display:flex;gap:8px;flex-wrap:wrap;}
+  .media-thumb{
+    width:64px;height:48px;
+    padding:3px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    background:var(--well);
+    cursor:pointer;
+    opacity:.55;
+    transition:opacity .2s ease, border-color .2s ease;
+  }
+  .media-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:4px;}
+  .media-thumb:hover{opacity:.85;}
+  .media-thumb[aria-pressed="true"]{opacity:1;border-color:var(--line-hi);}
+  .media-thumb:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+  /* body */
+  .plugin-body{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    padding:clamp(4px, 1vw, 12px) clamp(0px, 1vw, 8px) 4px 0;
+  }
+  .plugin-meta{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .plugin-meta .num::before{content:counter(plugin, decimal-leading-zero);}
+  .plugin-meta .rule{flex:1;height:1px;background:var(--line);}
+  .badge{
+    font-family:var(--font-mono);
+    font-size:0.62rem;
+    font-weight:500;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    padding:3px 8px;
+    border:1px solid rgba(217,164,65,0.35);
+    border-radius:4px;
+  }
+  .plugin h2{
+    margin:0 0 10px;
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:clamp(1.6rem, 2.8vw, 2.1rem);
+    line-height:1.1;
+    letter-spacing:-0.025em;
+  }
+  .plugin .tagline{
+    margin:0;
+    max-width:36em;
+    color:var(--text-1);
+    font-size:0.98rem;
+    line-height:1.6;
+    text-wrap:pretty;
+  }
+
+  /* ---------- A/B demo player ---------- */
+  .ab-player{
+    margin-top:26px;
+    padding:16px 18px 14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    background:var(--surface-2);
+  }
+  .transport{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .play-btn{
+    width:44px;height:44px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    border:1px solid var(--line-hi);
+    background:rgba(255,255,255,0.04);
+    color:var(--text-0);
+    cursor:pointer;
+    transition:background-color .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .play-btn:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.28);}
+  .play-btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+  .play-btn svg{width:14px;height:14px;fill:currentColor;display:block;}
+  .play-btn .ic-play{margin-left:2px;}
+  .play-btn .ic-pause{display:none;}
+  .play-btn.is-playing{background:var(--gold);border-color:var(--gold);color:var(--ink);}
+  .play-btn.is-playing .ic-play{display:none;}
+  .play-btn.is-playing .ic-pause{display:block;}
+  .play-btn.is-loading{pointer-events:none;}
+  .play-btn.is-loading svg{display:none;}
+  .play-btn.is-loading::after{
+    content:"";
+    width:14px;height:14px;
+    border-radius:50%;
+    border:1.5px solid rgba(255,255,255,0.2);
+    border-top-color:var(--text-0);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* waveform seek: the canvas draws, a transparent range on top handles input */
+  .wave{
+    position:relative;
+    flex:1;
+    min-width:0;
+    height:44px;
+    border-radius:4px;
+  }
+  .wave canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .wave .seek{
+    position:absolute;
+    inset:0;
+    width:100%;height:100%;
+    margin:0;
+    opacity:0;
+    cursor:pointer;
+  }
+  .wave:has(.seek:focus-visible){outline:2px solid var(--gold);outline-offset:4px;}
+
+  .time{
+    flex-shrink:0;
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    font-variant-numeric:tabular-nums;
+    color:var(--text-2);
+    white-space:nowrap;
+  }
+  .time .cur{color:var(--text-1);}
+
+  /* dry / wet crossfader */
+  .xfade{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .xfade-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .xfade-end{
+    padding:2px 0;
+    border:0;
+    background:none;
+    font-family:var(--font-mono);
+    font-size:0.66rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--text-2);
+    cursor:pointer;
+    transition:color .2s ease;
+  }
+  .xfade-end:hover{color:var(--text-1);}
+  .xfade-end.is-active{color:var(--text-0);}
+  .xfade-end:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:2px;}
+  .xfade-readout{
+    font-family:var(--font-mono);
+    font-size:0.7rem;
+    color:var(--text-2);
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .xfade-readout b{font-weight:500;color:var(--gold-soft);}
+  .xfade-track{
+    position:relative;
+    height:30px;
+  }
+  /* tick marks at 0 / 25 / 50 / 75 / 100 */
+  .xfade-track::before{
+    content:"";
+    position:absolute;
+    left:7px;right:7px;
+    top:50%;
+    height:11px;
+    transform:translateY(-50%);
+    background-image:
+      linear-gradient(var(--line-hi), var(--line-hi)),
+      linear-gradient(var(--line), var(--line)),
+      linear-gradient(var(--line-hi), var(--line-hi)),
+      linear-gradient(var(--line), var(--line)),
+      linear-gradient(var(--line-hi), var(--line-hi));
+    background-size:1px 100%;
+    background-position:0 0, 25% 0, 50% 0, 75% 0, 100% 0;
+    background-repeat:no-repeat;
+    pointer-events:none;
+  }
+  .xfade-range{
+    --mix:0%;
+    position:relative;
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:30px;
+    margin:0;
+    background:transparent;
+    cursor:pointer;
+  }
+  .xfade-range:focus{outline:none;}
+  .xfade-range::-webkit-slider-runnable-track{
+    height:2px;
+    border-radius:1px;
+    background:linear-gradient(90deg, var(--gold) var(--mix), rgba(255,255,255,0.14) var(--mix));
+  }
+  .xfade-range::-moz-range-track{height:2px;border-radius:1px;background:rgba(255,255,255,0.14);}
+  .xfade-range::-moz-range-progress{height:2px;border-radius:1px;background:var(--gold);}
+  /* fader cap: a small machined block with a centre index line */
+  .xfade-range::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:14px;height:26px;
+    margin-top:-12px;
+    border-radius:3px;
+    border:1px solid rgba(0,0,0,0.5);
+    background:
+      linear-gradient(90deg, transparent 6px, #5d6168 6px, #5d6168 7px, transparent 7px),
+      linear-gradient(180deg, #f5f6f7, #c4c8ce);
+    box-shadow:0 3px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
+    cursor:grab;
+  }
+  .xfade-range::-moz-range-thumb{
+    width:12px;height:24px;
+    border-radius:3px;
+    border:1px solid rgba(0,0,0,0.5);
+    background:
+      linear-gradient(90deg, transparent 5.5px, #5d6168 5.5px, #5d6168 6.5px, transparent 6.5px),
+      linear-gradient(180deg, #f5f6f7, #c4c8ce);
+    box-shadow:0 3px 8px rgba(0,0,0,0.5);
+    cursor:grab;
+  }
+  .xfade-range:active::-webkit-slider-thumb{cursor:grabbing;}
+  .xfade-range:focus-visible::-webkit-slider-thumb{outline:2px solid var(--gold);outline-offset:2px;}
+  .xfade-range:focus-visible::-moz-range-thumb{outline:2px solid var(--gold);outline-offset:2px;}
+
+  /* ---------- purchase ---------- */
+  .purchase{
+    margin-top:auto;
+    padding-top:26px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+  }
+  .price{
+    font-family:var(--font-display);
+    font-size:1.75rem;
+    font-weight:600;
+    letter-spacing:-0.02em;
+    font-variant-numeric:tabular-nums;
+  }
+  .buy-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:13px 22px 13px 26px;
+    border-radius:999px;
+    border:1px solid var(--gold);
+    background:var(--gold);
+    color:var(--ink);
+    font-weight:600;
+    font-size:0.92rem;
+    letter-spacing:0.005em;
+    white-space:nowrap;
+    cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.3), 0 8px 24px -10px rgba(217,164,65,0.55);
+    transition:background-color .2s ease, box-shadow .2s ease;
+  }
+  .buy-btn svg{width:14px;height:14px;transition:transform .25s var(--ease);}
+  .buy-btn:hover{background:var(--gold-soft);}
+  .buy-btn:hover svg{transform:translateX(3px);}
+  .buy-btn:focus-visible{outline:2px solid var(--text-0);outline-offset:3px;}
+  @media (max-width:520px){
+    .purchase .buy-btn{flex:1;justify-content:center;}
+  }
+
+  /* ---------- footer ---------- */
+  .site-footer{
+    margin-top:clamp(72px, 12vh, 120px);
+    border-top:1px solid var(--line);
+    padding:32px 0 calc(40px + env(safe-area-inset-bottom));
+    color:var(--text-2);
+    font-size:0.82rem;
+  }
+  .site-footer .shell{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px 32px;
+  }
+  .site-footer a{color:var(--text-1);transition:color .2s ease;}
+  .site-footer a:hover{color:var(--text-0);}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:calc(28px + env(safe-area-inset-bottom));
+    z-index:200;
+    max-width:min(440px, calc(100vw - 32px));
+    padding:14px 20px;
+    border:1px solid var(--line-hi);
+    border-radius:var(--radius-md);
+    background:rgba(16,18,22,0.92);
+    -webkit-backdrop-filter:blur(16px);
+    backdrop-filter:blur(16px);
+    box-shadow:0 20px 50px rgba(0,0,0,0.5);
+    font-size:0.9rem;
+    line-height:1.45;
+    opacity:0;
+    pointer-events:none;
+    transform:translateX(-50%) translateY(16px);
+    transition:opacity .3s ease, transform .3s var(--ease);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .toast a{color:var(--gold-soft);text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+
+  /* ---------- lightbox ---------- */
+  .lightbox{
+    position:fixed;
+    inset:0;
+    z-index:300;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:clamp(16px, 5vw, 56px);
+    background:rgba(5,6,7,0.8);
+    -webkit-backdrop-filter:blur(14px);
+    backdrop-filter:blur(14px);
+    opacity:0;
+    transition:opacity .22s ease;
+  }
+  .lightbox.is-open{display:flex;}
+  .lightbox.is-shown{opacity:1;}
+  .lightbox-panel{
+    position:relative;
+    max-width:min(1100px, 100%);
+    max-height:100%;
+    transform:scale(.98);
+    transition:transform .3s var(--ease);
+  }
+  .lightbox.is-shown .lightbox-panel{transform:scale(1);}
+  .lightbox-panel img{
+    display:block;
+    max-width:100%;
+    max-height:calc(100vh - clamp(80px, 12vw, 150px));
+    width:auto;height:auto;
+    border-radius:var(--radius-md);
+    box-shadow:0 30px 80px rgba(0,0,0,0.7);
+  }
+  .lightbox-close{
+    position:absolute;
+    top:-44px;right:0;
+    width:34px;height:34px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    border:1px solid var(--line-hi);
+    background:rgba(16,18,22,0.9);
+    color:var(--text-0);
+    cursor:pointer;
+    transition:background-color .2s ease;
+  }
+  .lightbox-close svg{width:14px;height:14px;}
+  .lightbox-close:hover{background:#22262c;}
+  .lightbox-caption{
+    margin:12px 0 0;
+    text-align:center;
+    font-size:0.78rem;
+    color:var(--text-2);
+  }
+
+  /* ---------- motion ---------- */
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    *,*::before,*::after{transition-duration:0s !important;}
+    .play-btn.is-loading::after{animation:none;}
+    .media-stage:hover img{transform:none;}
+  }
+</style>
+</head>
+<body id="top">
+
+  <div class="backdrop" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" id="siteHeader">
+    <div class="shell">
+      <a class="brand" href="#top" aria-label="Sprizzle Audio, back to top">
+        <img src="assets/favicon.svg" alt="" width="28" height="28">
+        <span>Sprizzle <span class="brand-sub">Audio</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="#plugins" class="nav-hide-sm">Plugins</a>
+        <a class="nav-cta" href="https://mail.google.com/mail/u/0/?fs=1&amp;tf=cm&amp;source=mailto&amp;to=spryte@sprizzle.io" target="_blank" rel="noopener">Support</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="hero-copy">
+        <span class="label">Sprizzle Audio &mdash; Plugins</span>
+        <!-- FILL IN: headline + intro copy -->
+        <h1 id="heroTitle">Strange processors <span class="dim">for voices and everything after&nbsp;them.</span></h1>
+        <p class="hero-lede">Resynthesis, harmonization and modulation tools, built in-house. Every demo below is a live A/B: press play, then pull the crossfader from dry to fully processed.</p>
+      </div>
+
+      <!-- filled in by the script from the plugin cards below, so it never goes stale -->
+      <aside class="lineup" aria-label="Plugin lineup">
+        <div class="lineup-head">
+          <span class="label">The lineup</span>
+          <span class="label" id="pluginCount"></span>
+        </div>
+        <ol id="pluginIndex"></ol>
+      </aside>
+    </section>
+
+    <section class="plugins" id="plugins" aria-label="Plugins">
+
+      <!-- ============================================================
+           PLUGIN CARD TEMPLATE — copy everything from "PLUGIN START"
+           to "PLUGIN END" to add a new plugin. Search for "FILL IN" to
+           find every spot that needs your data. Numbering, the lineup
+           index in the hero and the gallery thumbnails are automatic.
+           ============================================================ -->
+
+      <!-- PLUGIN START -->
+      <article class="plugin">
+        <!-- FILL IN: one or more screenshots. The first is the main image; any
+             extra ones become clickable thumbnails. Spaces in file names → %20 -->
+        <div class="media">
+          <img src="assets/plugins/Demoncore2picture.PNG" alt="Demon Core II interface">
+          <img src="assets/plugins/demoncore2%20expanded.PNG" alt="Demon Core II interface, expanded view">
+        </div>
+
+        <div class="plugin-body">
+          <div class="plugin-meta">
+            <span class="label num"></span>
+            <span class="rule" aria-hidden="true"></span>
+            <span class="badge">New</span>
+          </div>
+          <h2>Demon Core II</h2>
+          <p class="tagline">Talkbox-style vocal resynthesis and ML-backed auto-harmonization.</p>
+
+          <div class="ab-player">
+            <!-- FILL IN: dry / processed demo files -->
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <div class="wave">
+                <canvas aria-hidden="true"></canvas>
+                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              </div>
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="xfade">
+              <div class="xfade-head">
+                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
+                <!-- FILL IN: name shown on the processed end of the fader -->
+                <button type="button" class="xfade-end xfade-wet">Demon Core II</button>
+              </div>
+              <div class="xfade-track">
+                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              </div>
+            </div>
+          </div>
+
+          <div class="purchase">
+            <span class="price">$300</span>
+            <!-- FILL IN: Stripe checkout link -->
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">
+              Buy now
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+      <!-- PLUGIN END -->
+
+      <!-- PLUGIN START -->
+      <article class="plugin">
+        <div class="media">
+          <img src="assets/plugins/dextrodelaypicture.PNG" alt="Dextro Delay interface">
+        </div>
+
+        <div class="plugin-body">
+          <div class="plugin-meta">
+            <span class="label num"></span>
+            <span class="rule" aria-hidden="true"></span>
+            <span class="badge">Free</span>
+          </div>
+          <h2>Dextro Delay</h2>
+          <p class="tagline">Tired of routing sidechain buses? This delay sidechains itself like a good little bot. Inspired by NyQuil.</p>
+
+          <div class="ab-player">
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <div class="wave">
+                <canvas aria-hidden="true"></canvas>
+                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              </div>
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="xfade">
+              <div class="xfade-head">
+                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
+                <button type="button" class="xfade-end xfade-wet">Dextro Delay</button>
+              </div>
+              <div class="xfade-track">
+                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              </div>
+            </div>
+          </div>
+
+          <div class="purchase">
+            <span class="price">Free</span>
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-download-url">
+              Download
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v9M4 8l4 4 4-4"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+      <!-- PLUGIN END -->
+
+      <!-- PLUGIN START -->
+      <article class="plugin">
+        <div class="media">
+          <img src="assets/plugins/demoncore1%20blue.PNG" alt="NeuronLink Demon Core interface, blue theme">
+          <img src="assets/plugins/demoncore1%20red.PNG" alt="NeuronLink Demon Core interface, red theme">
+        </div>
+
+        <div class="plugin-body">
+          <div class="plugin-meta">
+            <span class="label num"></span>
+            <span class="rule" aria-hidden="true"></span>
+            <span class="badge">New</span>
+          </div>
+          <h2>NeuronLink Demon Core</h2>
+          <p class="tagline">Use machine learning in &ldquo;Demon Mode&rdquo; to predict and generate harmonies while feeding each voice through its own instance of NeuronLink.</p>
+
+          <div class="ab-player">
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <div class="wave">
+                <canvas aria-hidden="true"></canvas>
+                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              </div>
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="xfade">
+              <div class="xfade-head">
+                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
+                <button type="button" class="xfade-end xfade-wet">Demon Mode</button>
+              </div>
+              <div class="xfade-track">
+                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              </div>
+            </div>
+          </div>
+
+          <div class="purchase">
+            <span class="price">$125</span>
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">
+              Buy now
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+      <!-- PLUGIN END -->
+
+      <!-- PLUGIN START -->
+      <article class="plugin">
+        <div class="media">
+          <img src="vsts/neuronlink/neuralinkpicture.PNG" alt="NeuronLink interface">
+        </div>
+
+        <div class="plugin-body">
+          <div class="plugin-meta">
+            <span class="label num"></span>
+            <span class="rule" aria-hidden="true"></span>
+            <span class="badge">New</span>
+          </div>
+          <h2>NeuronLink</h2>
+          <p class="tagline">Pitch-tracked ring modulator with relative tuning.</p>
+
+          <div class="ab-player">
+            <audio class="audio-before" preload="none" loop>
+              <source src="vsts/neuronlink/BEFORENEURALINK.mp3" type="audio/mpeg">
+            </audio>
+            <audio class="audio-after" preload="none" loop>
+              <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="transport">
+              <button class="play-btn" type="button" aria-label="Play demo">
+                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
+                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+              </button>
+              <div class="wave">
+                <canvas aria-hidden="true"></canvas>
+                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+              </div>
+              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            </div>
+
+            <div class="xfade">
+              <div class="xfade-head">
+                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
+                <button type="button" class="xfade-end xfade-wet">NeuronLink</button>
+              </div>
+              <div class="xfade-track">
+                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+              </div>
+            </div>
+          </div>
+
+          <div class="purchase">
+            <span class="price">$50</span>
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">
+              Buy now
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+      <!-- PLUGIN END -->
+
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell">
+      <!-- FILL IN: footer text -->
+      <span>&copy; 2026 Sprizzle Audio. All plugins sold as-is, digital delivery only.</span>
+      <a href="https://mail.google.com/mail/u/0/?fs=1&amp;tf=cm&amp;source=mailto&amp;to=spryte@sprizzle.io" target="_blank" rel="noopener">spryte@sprizzle.io</a>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged plugin image">
+    <div class="lightbox-panel" id="lightboxPanel">
+      <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close image">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+      <img id="lightboxImg" src="" alt="">
+      <p class="lightbox-caption" id="lightboxCaption"></p>
+    </div>
+  </div>
+
+  <!--
+    Checkout: every buy button redirects to the URL in data-checkout-url.
+    The old iframe checkout modal (for a processor that allows framing) is
+    still in VST.html if you ever want to bring it back.
+  -->
+
+<script>
+(function(){
+  "use strict";
+
+  var SUPPORT_EMAIL = "spryte@sprizzle.io";
+  var reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+  function formatTime(sec){
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  // ---- shared AudioContext (one clock for every player) ----
+  // Both stems of a demo play from this single context, so they are locked to
+  // the same sample clock and can never drift. Blending is a gain crossfade.
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var sharedCtx = null;
+  var ctxUnlocked = false;
+  function getCtx(){
+    if(!sharedCtx && AudioCtx){
+      try { sharedCtx = new AudioCtx(); } catch(_){ sharedCtx = null; }
+    }
+    return sharedCtx;
+  }
+  // iOS: Web Audio stays suspended until resumed in a gesture, and is muted by
+  // the silent switch unless a media element is playing. A looping silent
+  // <audio> flips it into playback mode (same trick howler.js uses).
+  var silentEl = null;
+  function makeSilentAudio(){
+    try {
+      var sr = 8000, n = sr / 2;
+      var buf = new ArrayBuffer(44 + n), dv = new DataView(buf);
+      var w = function(o, s){ for(var i=0;i<s.length;i++) dv.setUint8(o+i, s.charCodeAt(i)); };
+      w(0,"RIFF"); dv.setUint32(4, 36+n, true); w(8,"WAVE"); w(12,"fmt ");
+      dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+      dv.setUint32(24,sr,true); dv.setUint32(28,sr,true); dv.setUint16(32,1,true); dv.setUint16(34,8,true);
+      w(36,"data"); dv.setUint32(40,n,true);
+      for(var i=0;i<n;i++) dv.setUint8(44+i, 128);
+      var a = new Audio();
+      a.loop = true; a.preload = "auto"; a.setAttribute("playsinline","");
+      a.src = URL.createObjectURL(new Blob([buf], { type:"audio/wav" }));
+      return a;
+    } catch(_){ return null; }
+  }
+  function unlockCtx(){
+    var c = getCtx();
+    if(c){
+      if(c.state === "suspended") c.resume();
+      if(!ctxUnlocked){
+        try {
+          var b = c.createBuffer(1, 1, 22050);
+          var s = c.createBufferSource();
+          s.buffer = b; s.connect(c.destination); s.start(0);
+        } catch(_){}
+      }
+    }
+    if(!ctxUnlocked){
+      if(!silentEl) silentEl = makeSilentAudio();
+      if(silentEl){ var pr = silentEl.play(); if(pr && pr.catch) pr.catch(function(){}); }
+      ctxUnlocked = true;
+    }
+  }
+  ["pointerdown","touchstart","keydown"].forEach(function(ev){
+    window.addEventListener(ev, unlockCtx, { passive:true });
+  });
+
+  function sourceUrl(audioEl){
+    var s = audioEl && audioEl.querySelector("source");
+    return s ? s.getAttribute("src") : (audioEl ? audioEl.currentSrc : "");
+  }
+
+  // peak envelope of a buffer at a fixed resolution, for the waveform
+  var PEAK_RES = 1024;
+  function computePeaks(buf, seconds){
+    var out = new Float32Array(PEAK_RES);
+    var len = Math.min(buf.length, Math.floor(seconds * buf.sampleRate));
+    var chans = [];
+    for(var c = 0; c < buf.numberOfChannels; c++) chans.push(buf.getChannelData(c));
+    var size = len / PEAK_RES;
+    for(var i = 0; i < PEAK_RES; i++){
+      var s = Math.floor(i * size), e = Math.min(len, Math.floor((i + 1) * size));
+      var step = Math.max(1, Math.floor((e - s) / 256)), m = 0;
+      for(var j = s; j < e; j += step){
+        for(var k = 0; k < chans.length; k++){
+          var v = chans[k][j]; if(v < 0) v = -v;
+          if(v > m) m = v;
+        }
+      }
+      out[i] = m;
+    }
+    return out;
+  }
+
+  var players = [];
+
+  // ---- wire up every demo player ----
+  document.querySelectorAll(".ab-player").forEach(function(player){
+    var card     = player.closest(".plugin");
+    var beforeEl = player.querySelector(".audio-before");
+    var afterEl  = player.querySelector(".audio-after");
+    var playBtn  = player.querySelector(".play-btn");
+    var seek     = player.querySelector(".seek");
+    var canvas   = player.querySelector(".wave canvas");
+    var curEl    = player.querySelector(".cur");
+    var durEl    = player.querySelector(".dur");
+    var blendRange = player.querySelector(".xfade-range");
+    var wetPctEl = player.querySelector(".wetpct");
+    var dryBtn   = player.querySelector(".xfade-dry");
+    var wetBtn   = player.querySelector(".xfade-wet");
+
+    var beforeUrl = sourceUrl(beforeEl);
+    var afterUrl  = sourceUrl(afterEl);
+
+    var blend = 0;        // 0 = fully dry, 1 = fully processed
+    var progress = 0;     // 0..1 playhead, drives the waveform fill
+    var isSeeking = false;
+    var self = {};
+
+    // equal-power crossfade keeps perceived loudness flat across the blend
+    function gains(b){ return { dry: Math.cos(b * Math.PI / 2), wet: Math.sin(b * Math.PI / 2) }; }
+
+    function setPlaying(on){
+      playBtn.classList.toggle("is-playing", on);
+      playBtn.setAttribute("aria-label", on ? "Pause demo" : "Play demo");
+      if(card) card.classList.toggle("is-playing", on);
+    }
+    function setLoading(on){ playBtn.classList.toggle("is-loading", on); }
+
+    // ===== waveform =====
+    var c2d = canvas ? canvas.getContext("2d") : null;
+    var peaksDry = null, peaksWet = null, drawPending = false;
+
+    function draw(){
+      drawPending = false;
+      if(!c2d) return;
+      var w = canvas.clientWidth, h = canvas.clientHeight;
+      if(!w || !h) return;
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      var pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+      if(canvas.width !== pw || canvas.height !== ph){ canvas.width = pw; canvas.height = ph; }
+      c2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c2d.clearRect(0, 0, w, h);
+
+      // the played portion warms from silver (dry) to gold (wet) with the fader
+      var r = Math.round(226 + (217 - 226) * blend);
+      var g = Math.round(228 + (164 - 228) * blend);
+      var b = Math.round(232 + (65 - 232) * blend);
+      var played = "rgb(" + r + "," + g + "," + b + ")";
+      var rest = "rgba(255,255,255,0.16)";
+
+      var bar = 2, gap = 2, mid = h / 2;
+      var n = Math.max(1, Math.floor((w + gap) / (bar + gap)));
+      for(var i = 0; i < n; i++){
+        var amp = 0;
+        if(peaksDry){
+          var a = Math.floor(i / n * PEAK_RES);
+          var z = Math.max(a + 1, Math.floor((i + 1) / n * PEAK_RES));
+          var d = 0, wv = 0;
+          for(var k = a; k < z; k++){
+            if(peaksDry[k] > d) d = peaksDry[k];
+            if(peaksWet[k] > wv) wv = peaksWet[k];
+          }
+          amp = d + (wv - d) * blend;
+        }
+        var bh = Math.max(2, amp * (h - 4));
+        c2d.fillStyle = (i + 0.5) / n <= progress ? played : rest;
+        c2d.fillRect(i * (bar + gap), mid - bh / 2, bar, bh);
+      }
+    }
+    function requestDraw(){
+      if(drawPending) return;
+      drawPending = true;
+      requestAnimationFrame(draw);
+    }
+    if(canvas && "ResizeObserver" in window) new ResizeObserver(requestDraw).observe(canvas);
+    requestDraw();
+
+    function setProgress(frac, sec){
+      progress = frac;
+      if(seek && !isSeeking) seek.value = Math.round(frac * 1000);
+      if(curEl && sec != null) curEl.textContent = formatTime(sec);
+      requestDraw();
+    }
+
+    function updateBlendUI(){
+      var pct = Math.round(blend * 100);
+      if(wetPctEl) wetPctEl.textContent = pct;
+      if(blendRange){
+        blendRange.value = pct;
+        blendRange.style.setProperty("--mix", pct + "%");
+        blendRange.setAttribute("aria-valuetext", pct + "% processed");
+      }
+      if(dryBtn) dryBtn.classList.toggle("is-active", blend <= 0.5);
+      if(wetBtn) wetBtn.classList.toggle("is-active", blend > 0.5);
+      requestDraw();
+    }
+
+    // ===== Web Audio engine (preferred) =====
+    var ctx = null, engine = null;         // engine: "wa" | "fallback"
+    var dryBuf = null, wetBuf = null;
+    var loaded = false, loading = null, decodeFailed = false;
+    var srcDry = null, srcWet = null, gDry = null, gWet = null;
+    var duration = 0, startCtxTime = 0, startOffset = 0, playing = false, rafId = null;
+    var pendingFrac = null;                // a seek made before the audio loaded
+
+    function loadBuffers(){
+      if(loaded || decodeFailed) return Promise.resolve();
+      if(loading) return loading;
+      ctx = getCtx();
+      if(!ctx || !beforeUrl || !afterUrl){ decodeFailed = true; return Promise.resolve(); }
+      loading = Promise.all([beforeUrl, afterUrl].map(function(u){
+        return fetch(u).then(function(r){
+          if(!r.ok) throw new Error("HTTP " + r.status);
+          return r.arrayBuffer();
+        }).then(function(ab){
+          return new Promise(function(res, rej){ ctx.decodeAudioData(ab, res, rej); });
+        });
+      })).then(function(bufs){
+        dryBuf = bufs[0]; wetBuf = bufs[1];
+        duration = Math.min(dryBuf.duration, wetBuf.duration);
+        peaksDry = computePeaks(dryBuf, duration);
+        peaksWet = computePeaks(wetBuf, duration);
+        var max = 0;
+        for(var i = 0; i < PEAK_RES; i++){ max = Math.max(max, peaksDry[i], peaksWet[i]); }
+        if(max > 0){
+          for(var j = 0; j < PEAK_RES; j++){ peaksDry[j] /= max; peaksWet[j] /= max; }
+        }
+        if(pendingFrac != null){ startOffset = pendingFrac * duration; pendingFrac = null; }
+        loaded = true;
+        if(durEl) durEl.textContent = formatTime(duration);
+        requestDraw();
+      }).catch(function(){ decodeFailed = true; });
+      return loading;
+    }
+
+    function currentPos(){
+      if(!playing) return startOffset;
+      var t = startOffset + (ctx.currentTime - startCtxTime);
+      return duration > 0 ? t % duration : t;
+    }
+
+    function stopSources(){
+      [srcDry, srcWet].forEach(function(s){
+        if(s){ try{ s.stop(); }catch(_){} try{ s.disconnect(); }catch(_){} }
+      });
+      srcDry = srcWet = null;
+    }
+
+    function startWAAt(offset){
+      stopSources();
+      var g = gains(blend);
+      gDry = ctx.createGain(); gDry.gain.value = g.dry; gDry.connect(ctx.destination);
+      gWet = ctx.createGain(); gWet.gain.value = g.wet; gWet.connect(ctx.destination);
+      srcDry = ctx.createBufferSource(); srcDry.buffer = dryBuf;
+      srcWet = ctx.createBufferSource(); srcWet.buffer = wetBuf;
+      // loop both over the SAME length so their loop points stay sample-aligned
+      srcDry.loop = srcWet.loop = true;
+      srcDry.loopStart = srcWet.loopStart = 0;
+      srcDry.loopEnd = srcWet.loopEnd = duration;
+      srcDry.connect(gDry); srcWet.connect(gWet);
+      var off = duration > 0 ? (offset % duration) : 0;
+      var when = ctx.currentTime + 0.03;
+      srcDry.start(when, off); srcWet.start(when, off);
+      startCtxTime = when; startOffset = off; playing = true;
+    }
+
+    function applyBlendWA(){
+      if(!playing || !gDry || !gWet || !ctx) return;
+      var g = gains(blend), t = ctx.currentTime;
+      gDry.gain.setTargetAtTime(g.dry, t, 0.03);
+      gWet.gain.setTargetAtTime(g.wet, t, 0.03);
+    }
+
+    // runs only while playing; stops itself on pause
+    function tick(){
+      if(!playing){ rafId = null; return; }
+      rafId = requestAnimationFrame(tick);
+      if(isSeeking || duration <= 0) return;
+      var pos = currentPos();
+      setProgress(pos / duration, pos);
+    }
+
+    // ===== fallback engine (<audio> volume crossfade) =====
+    var fbPlaying = false;
+    function fbApplyBlend(){
+      var g = gains(blend);
+      beforeEl.volume = g.dry; afterEl.volume = g.wet;
+      beforeEl.muted = afterEl.muted = false;
+    }
+    function fallbackPlay(){
+      engine = "fallback";
+      fbApplyBlend();
+      afterEl.currentTime = beforeEl.currentTime;
+      Promise.all([beforeEl.play(), afterEl.play()]).catch(function(){
+        fallbackPause();
+        showToast("This demo couldn&rsquo;t be loaded. Try again in a moment.");
+      });
+      fbPlaying = true; setPlaying(true);
+    }
+    function fallbackPause(){ beforeEl.pause(); afterEl.pause(); fbPlaying = false; setPlaying(false); }
+    beforeEl.addEventListener("loadedmetadata", function(){
+      if(engine !== "wa" && durEl) durEl.textContent = formatTime(beforeEl.duration);
+    });
+    beforeEl.addEventListener("timeupdate", function(){
+      if(engine !== "fallback" || isSeeking) return;
+      if(beforeEl.duration) setProgress(beforeEl.currentTime / beforeEl.duration, beforeEl.currentTime);
+      if(Math.abs(beforeEl.currentTime - afterEl.currentTime) > 0.15) afterEl.currentTime = beforeEl.currentTime;
+    });
+
+    // ===== unified controls =====
+    function isActive(){ return engine === "fallback" ? fbPlaying : playing; }
+    function play(){
+      unlockCtx();
+      players.forEach(function(p){ if(p !== self) p.pause(); });   // one demo at a time
+      setLoading(true);
+      loadBuffers().then(function(){
+        setLoading(false);
+        if(decodeFailed){ fallbackPlay(); return; }
+        engine = "wa";
+        if(ctx.state === "suspended") ctx.resume();
+        startWAAt(currentPos());
+        setPlaying(true);
+        if(rafId == null) tick();
+      });
+    }
+    function pause(){
+      if(engine === "fallback"){ if(fbPlaying) fallbackPause(); return; }
+      if(!playing) return;
+      startOffset = currentPos();
+      stopSources();
+      playing = false;
+      setPlaying(false);
+    }
+    self.pause = pause;
+    players.push(self);
+    playBtn.addEventListener("click", function(){ if(isActive()) pause(); else play(); });
+
+    // ===== crossfader =====
+    function setBlend(b){
+      blend = Math.min(1, Math.max(0, b));
+      updateBlendUI();
+      if(engine === "fallback") fbApplyBlend(); else applyBlendWA();
+    }
+    if(blendRange){
+      blendRange.addEventListener("input", function(){ setBlend(Number(blendRange.value) / 100); });
+    }
+    if(dryBtn) dryBtn.addEventListener("click", function(){ setBlend(0); });
+    if(wetBtn) wetBtn.addEventListener("click", function(){ setBlend(1); });
+    updateBlendUI();
+
+    // ===== seek =====
+    if(seek){
+      seek.addEventListener("input", function(){
+        isSeeking = true;
+        var frac = Number(seek.value) / 1000;
+        progress = frac;
+        if(loaded && curEl) curEl.textContent = formatTime(frac * duration);
+        requestDraw();
+      });
+      seek.addEventListener("change", function(){
+        var frac = Number(seek.value) / 1000;
+        if(engine === "fallback"){
+          if(beforeEl.duration){ beforeEl.currentTime = frac * beforeEl.duration; afterEl.currentTime = beforeEl.currentTime; }
+        } else if(loaded){
+          var off = frac * duration;
+          startOffset = off;
+          if(playing) startWAAt(off);
+          if(curEl) curEl.textContent = formatTime(off);
+        } else {
+          pendingFrac = frac;
+        }
+        isSeeking = false;
+      });
+    }
+  });
+
+  // ---- toast ----
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function showToast(html){
+    if(!toastEl) return;
+    toastEl.innerHTML = html;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 6000);
+  }
+
+  // ---- buy / download buttons: redirect to data-checkout-url ----
+  document.querySelectorAll(".buy-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var url = btn.getAttribute("data-checkout-url");
+      if(!url || url.indexOf("FILL-IN") === 0){
+        showToast("Checkout isn&rsquo;t live yet. Email <a href=\"mailto:" + SUPPORT_EMAIL + "\">" + SUPPORT_EMAIL + "</a> to get it.");
+        return;
+      }
+      window.location.href = url;
+    });
+  });
+
+  // ---- lineup index in the hero, built from the cards ----
+  function slug(s){
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+  (function buildLineup(){
+    var list = document.getElementById("pluginIndex");
+    var countEl = document.getElementById("pluginCount");
+    var cards = document.querySelectorAll(".plugin");
+    if(countEl) countEl.textContent = cards.length + (cards.length === 1 ? " plugin" : " plugins");
+    if(!list) return;
+    cards.forEach(function(card, i){
+      var h2 = card.querySelector("h2");
+      var price = card.querySelector(".price");
+      var name = h2 ? h2.textContent.trim() : "Plugin " + (i + 1);
+      if(!card.id) card.id = slug(name) || "plugin-" + (i + 1);
+
+      var a = document.createElement("a");
+      a.href = "#" + card.id;
+      [["ix-num", (i < 9 ? "0" : "") + (i + 1)],
+       ["ix-name", name],
+       ["ix-price", price ? price.textContent.trim() : ""]].forEach(function(p){
+        var s = document.createElement("span");
+        s.className = p[0]; s.textContent = p[1];
+        a.appendChild(s);
+      });
+      var li = document.createElement("li");
+      li.appendChild(a);
+      list.appendChild(li);
+    });
+  })();
+
+  // ---- media galleries: first image is the stage, the rest become thumbnails ----
+  var lightbox = document.getElementById("lightbox");
+  var lbPanel = document.getElementById("lightboxPanel");
+  var lbImg = document.getElementById("lightboxImg");
+  var lbCaption = document.getElementById("lightboxCaption");
+  var lbClose = document.getElementById("lightboxClose");
+  var lbReturnFocus = null;
+  var lbScrollY = 0;
+  var ZOOM_ICON = '<span class="zoom" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg></span>';
+
+  document.querySelectorAll(".media").forEach(function(media){
+    var imgs = Array.prototype.filter.call(media.children, function(el){ return el.tagName === "IMG"; });
+    if(!imgs.length) return;
+
+    var stage = document.createElement("button");
+    stage.type = "button";
+    stage.className = "media-stage";
+    var stageImg = document.createElement("img");
+    stageImg.decoding = "async";
+    stage.appendChild(stageImg);
+    stage.insertAdjacentHTML("beforeend", ZOOM_ICON);
+
+    // remember each image's own details before the thumbnails take them over
+    var items = imgs.map(function(img){
+      return { src:img.getAttribute("src"), alt:img.alt || "", caption:img.dataset.caption || "" };
+    });
+    function show(item){
+      stageImg.src = item.src;
+      stageImg.alt = item.alt;
+      stageImg.dataset.caption = item.caption;
+      stage.setAttribute("aria-label", "Enlarge image" + (item.alt ? ": " + item.alt : ""));
+    }
+    show(items[0]);
+    media.insertBefore(stage, imgs[0]);
+
+    if(imgs.length > 1){
+      var strip = document.createElement("div");
+      strip.className = "media-thumbs";
+      imgs.forEach(function(img, i){
+        var t = document.createElement("button");
+        t.type = "button";
+        t.className = "media-thumb";
+        t.setAttribute("aria-label", "Show image " + (i + 1) + (items[i].alt ? ": " + items[i].alt : ""));
+        t.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+        img.loading = "lazy";
+        img.alt = "";
+        t.appendChild(img);
+        t.addEventListener("click", function(){
+          strip.querySelectorAll(".media-thumb").forEach(function(o){ o.setAttribute("aria-pressed", o === t ? "true" : "false"); });
+          show(items[i]);
+        });
+        strip.appendChild(t);
+      });
+      media.appendChild(strip);
+    } else {
+      imgs[0].remove();
+    }
+
+    stage.addEventListener("click", function(){
+      openLightbox(stageImg.currentSrc || stageImg.src, stageImg.alt, stageImg.dataset.caption || "", stage);
+    });
+  });
+
+  // ---- image lightbox ----
+  function openLightbox(src, alt, caption, opener){
+    if(!lightbox) return;
+    lbReturnFocus = opener || null;
+    lbImg.src = src;
+    lbImg.alt = alt || "";
+    lbCaption.textContent = caption || "";
+    lbCaption.hidden = !caption;
+
+    // lock the page behind the overlay; position:fixed so iOS doesn't scroll underneath
+    lbScrollY = window.scrollY;
+    var sbw = window.innerWidth - document.documentElement.clientWidth;
+    document.documentElement.style.scrollBehavior = "auto";
+    document.body.style.position = "fixed";
+    document.body.style.top = -lbScrollY + "px";
+    document.body.style.width = "100%";
+    if(sbw > 0) document.body.style.paddingRight = sbw + "px";
+
+    lightbox.classList.add("is-open");
+    requestAnimationFrame(function(){ lightbox.classList.add("is-shown"); });
+    lbClose.focus();
+  }
+
+  function closeLightbox(){
+    if(!lightbox || !lightbox.classList.contains("is-open")) return;
+    lightbox.classList.remove("is-shown");
+
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.width = "";
+    document.body.style.paddingRight = "";
+    window.scrollTo(0, lbScrollY);
+    document.documentElement.style.scrollBehavior = "";
+
+    var done = function(){
+      lightbox.classList.remove("is-open");
+      lbImg.src = "";
+      if(lbReturnFocus && lbReturnFocus.focus) lbReturnFocus.focus({ preventScroll:true });
+      lbReturnFocus = null;
+    };
+    var fired = false;
+    lightbox.addEventListener("transitionend", function once(e){
+      if(e.target !== lightbox || fired) return;
+      fired = true; lightbox.removeEventListener("transitionend", once); done();
+    });
+    setTimeout(function(){ if(!fired){ fired = true; done(); } }, reducedMotion.matches ? 0 : 320);
+  }
+
+  if(lightbox){
+    lightbox.addEventListener("click", function(e){
+      if(e.target !== lbImg) closeLightbox();
+    });
+    lbClose.addEventListener("click", closeLightbox);
+    document.addEventListener("keydown", function(e){
+      if(e.key === "Escape") closeLightbox();
+    });
+  }
+
+  // ---- header picks up a surface once the page scrolls under it ----
+  var header = document.getElementById("siteHeader");
+  if(header){
+    var onScroll = function(){ header.classList.toggle("is-scrolled", window.scrollY > 8); };
+    window.addEventListener("scroll", onScroll, { passive:true });
+    onScroll();
+  }
+})();
+</script>
+
+</body>
+</html>

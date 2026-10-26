@@ -4,39 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sprizzle Audio — Plugins</title>
-<meta name="description" content="Vocal resynthesis, harmonization and modulation plugins by Sprizzle Audio. A/B every demo in the browser.">
+<meta name="description" content="Vocal resynthesis, harmony and modulation plugins from Sprizzle Audio. A/B every demo in the browser.">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#08090b">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0b0a">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* FILL IN: background image. Set this to url("assets/your-image.webp") once
-       you have it; the scrim in .backdrop::after keeps text legible over it. */
+    /* FILL IN: background image, e.g. url("assets/background.webp").
+       The scrim in .backdrop::after keeps the type readable over it. */
     --backdrop-image:none;
 
-    --bg:#08090b;
-    --surface:rgba(15,17,21,0.62);
-    --surface-2:rgba(255,255,255,0.025);
-    --well:#060708;
-    --line:rgba(255,255,255,0.08);
-    --line-hi:rgba(255,255,255,0.16);
-    --text-0:#f3f4f5;
-    --text-1:#b3b7be;
-    --text-2:#767b84;
-    --gold:#d9a441;
-    --gold-soft:#e8bd6b;
-    --ink:#1a1305;
-    --radius-lg:18px;
-    --radius-md:12px;
-    --radius-sm:8px;
-    --ease:cubic-bezier(.2,.7,.2,1);
-    --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
-    --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
-    --font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --bg:#0b0b0a;
+    --fg:#ebe8e1;
+    --fg-2:#a29e96;
+    --fg-3:#6e6b65;
+    --rule:rgba(235,232,225,0.16);
+    --rule-soft:rgba(235,232,225,0.08);
+    --panel:rgba(235,232,225,0.035);
+    /* gold is reserved for the processed signal: waveform, fader, wet label */
+    --wet:#d9a441;
+
+    --font:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --small:0.8125rem;
+    --max:1280px;
+    --gutter:clamp(20px, 4vw, 48px);
+    --col-gap:24px;
     --header-h:64px;
-    --gutter:clamp(16px, 4vw, 40px);
     color-scheme:dark;
   }
 
@@ -44,61 +40,43 @@
   html,body{margin:0;padding:0;}
   html{background:var(--bg);scroll-behavior:smooth;}
   body{
-    min-height:100vh;
-    min-height:100dvh;
     background:transparent;
-    color:var(--text-0);
-    font-family:var(--font-sans);
+    color:var(--fg);
+    font-family:var(--font);
     font-size:16px;
     line-height:1.5;
     -webkit-font-smoothing:antialiased;
     text-rendering:optimizeLegibility;
+    font-variant-numeric:tabular-nums;
     overflow-x:hidden;
   }
   a{color:inherit;text-decoration:none;}
-  button{font:inherit;color:inherit;}
-  ::selection{background:rgba(217,164,65,0.35);}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;}
+  ::selection{background:var(--fg);color:var(--bg);}
+  :focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
 
-  /* ---------- backdrop ---------- */
   .backdrop{
     position:fixed;
     inset:0;
-    z-index:-2;
+    z-index:-1;
     background:var(--backdrop-image) center / cover no-repeat, var(--bg);
   }
   .backdrop::after{
     content:"";
     position:absolute;
     inset:0;
-    background:
-      radial-gradient(110% 60% at 50% -12%, rgba(217,164,65,0.07), transparent 62%),
-      linear-gradient(180deg, rgba(8,9,11,0.45), rgba(8,9,11,0.82) 55%, rgba(8,9,11,0.96));
-  }
-  /* film grain over everything, so flat fills read as material rather than CSS */
-  .grain{
-    position:fixed;
-    inset:0;
-    z-index:-1;
-    pointer-events:none;
-    opacity:.05;
-    mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background:linear-gradient(180deg, rgba(11,11,10,0.5), rgba(11,11,10,0.9) 65%, var(--bg));
   }
 
-  .shell{
-    width:100%;
-    max-width:1160px;
+  .wrap{
+    max-width:var(--max);
     margin:0 auto;
     padding:0 var(--gutter);
   }
-
-  .label{
-    font-family:var(--font-mono);
-    font-size:0.68rem;
-    font-weight:500;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--text-2);
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12, minmax(0, 1fr));
+    column-gap:var(--col-gap);
   }
 
   /* ---------- header ---------- */
@@ -107,318 +85,221 @@
     top:0;
     z-index:50;
     border-bottom:1px solid transparent;
-    transition:background-color .3s ease, border-color .3s ease;
+    transition:background-color .2s ease, border-color .2s ease;
   }
   .site-header.is-scrolled{
-    background:rgba(8,9,11,0.72);
-    border-bottom-color:var(--line);
-    -webkit-backdrop-filter:blur(18px) saturate(1.4);
-    backdrop-filter:blur(18px) saturate(1.4);
+    background:rgba(11,11,10,0.94);
+    border-bottom-color:var(--rule-soft);
   }
-  .site-header .shell{
+  .site-header .wrap{
     height:var(--header-h);
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:24px;
   }
-  .brand{
+  .wordmark{
     display:flex;
     align-items:center;
     gap:10px;
-    font-family:var(--font-display);
-    font-size:1rem;
-    font-weight:500;
-    letter-spacing:-0.005em;
-  }
-  .brand img{height:28px;width:auto;display:block;}
-  .brand .brand-sub{color:var(--text-2);font-weight:400;}
-  .site-nav{
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-  .site-nav a{
-    padding:8px 14px;
-    border-radius:999px;
-    font-size:0.88rem;
-    color:var(--text-1);
-    transition:color .2s ease, background-color .2s ease;
-  }
-  .site-nav a:hover{color:var(--text-0);background:rgba(255,255,255,0.05);}
-  .site-nav a.nav-cta{
-    border:1px solid var(--line-hi);
-    color:var(--text-0);
-  }
-  .site-nav a.nav-cta:hover{border-color:rgba(255,255,255,0.28);}
-  @media (max-width:520px){
-    .site-nav .nav-hide-sm{display:none;}
-  }
-
-  /* ---------- hero ---------- */
-  .hero{
-    padding:clamp(56px, 11vh, 120px) 0 clamp(56px, 9vh, 96px);
-    display:grid;
-    grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr);
-    gap:clamp(32px, 5vw, 64px);
-    align-items:end;
-  }
-  .hero-copy .label{display:block;margin-bottom:22px;}
-  .hero h1{
-    font-family:var(--font-display);
     font-weight:600;
-    font-size:clamp(2.4rem, 5.4vw, 4.1rem);
-    line-height:1.02;
-    letter-spacing:-0.035em;
-    margin:0 0 24px;
+    font-stretch:87.5%;
+    font-size:1.0625rem;
+    letter-spacing:-0.01em;
   }
-  .hero h1 .dim{color:var(--text-2);}
-  .hero-lede{
-    max-width:34em;
+  .wordmark img{height:22px;width:auto;display:block;}
+  .site-nav{display:flex;gap:28px;font-size:0.9375rem;}
+  .site-nav a{color:var(--fg-2);transition:color .15s ease;}
+  .site-nav a:hover{color:var(--fg);}
+
+  /* ---------- intro ---------- */
+  .intro{
+    padding-top:clamp(72px, 14vh, 152px);
+    padding-bottom:clamp(64px, 10vh, 112px);
+  }
+  .intro h1{
+    grid-column:1 / span 10;
     margin:0;
-    font-size:1.06rem;
-    line-height:1.6;
-    color:var(--text-1);
-    text-wrap:pretty;
+    font-weight:400;
+    font-size:clamp(2.125rem, 4.8vw, 4rem);
+    line-height:1.06;
+    letter-spacing:-0.025em;
+  }
+  .intro p{
+    grid-column:1 / span 5;
+    margin:32px 0 0;
+    color:var(--fg-2);
+    font-size:1.0625rem;
+    line-height:1.55;
   }
 
-  /* the lineup: a spec-sheet style index of every plugin, built from the cards */
-  .lineup{
-    border:1px solid var(--line);
-    border-radius:var(--radius-lg);
-    background:var(--surface);
-    -webkit-backdrop-filter:blur(20px) saturate(1.3);
-    backdrop-filter:blur(20px) saturate(1.3);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
-    overflow:hidden;
-  }
-  .lineup-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    padding:16px 20px 14px;
-    border-bottom:1px solid var(--line);
-  }
-  .lineup ol{list-style:none;margin:0;padding:6px 0;}
-  .lineup a{
+  /* ---------- catalog index (built from the plugin sections) ---------- */
+  .catalog{margin-bottom:clamp(96px, 14vh, 160px);}
+  .catalog-row{
     display:grid;
-    grid-template-columns:28px 1fr auto;
+    grid-template-columns:4rem minmax(0, 1.1fr) minmax(0, 1.5fr) 6rem;
+    column-gap:var(--col-gap);
     align-items:baseline;
-    gap:12px;
-    padding:11px 20px;
-    transition:background-color .2s ease;
+    padding:16px 0;
+    border-top:1px solid var(--rule-soft);
   }
-  .lineup a:hover{background:rgba(255,255,255,0.035);}
-  .lineup .ix-num{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-2);}
-  .lineup .ix-name{font-size:0.95rem;color:var(--text-0);}
-  .lineup .ix-price{
-    font-family:var(--font-mono);
-    font-size:0.78rem;
-    color:var(--text-1);
-    font-variant-numeric:tabular-nums;
+  .catalog-head{
+    padding:0 0 12px;
+    border-top:0;
+    border-bottom:1px solid var(--rule);
+    color:var(--fg-3);
+    font-size:var(--small);
   }
-  .lineup a:hover .ix-price{color:var(--gold-soft);}
+  .catalog ol{list-style:none;margin:0;padding:0;}
+  .catalog li:first-child .catalog-row{border-top:0;}
+  .catalog .c-no{color:var(--fg-3);font-size:var(--small);}
+  .catalog .c-name{font-size:1.125rem;font-weight:500;}
+  .catalog .c-name .c-tag{margin-left:10px;font-size:var(--small);font-weight:400;color:var(--fg-3);}
+  .catalog .c-type{color:var(--fg-2);}
+  .catalog .c-price{text-align:right;}
+  .catalog a.catalog-row:hover .c-name{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px;}
 
-  @media (max-width:860px){
-    .hero{grid-template-columns:1fr;align-items:start;}
-  }
-
-  /* ---------- plugin cards ---------- */
-  .plugins{
-    display:flex;
-    flex-direction:column;
-    gap:clamp(20px, 3vw, 32px);
-    counter-reset:plugin;
-  }
+  /* ---------- plugin sections ---------- */
+  .plugins{counter-reset:plugin;}
   .plugin{
     counter-increment:plugin;
-    scroll-margin-top:calc(var(--header-h) + 20px);
-    display:grid;
-    grid-template-columns:minmax(0, 1fr) minmax(0, 1.12fr);
-    gap:clamp(24px, 3.5vw, 44px);
-    padding:clamp(16px, 2.2vw, 24px);
-    border:1px solid var(--line);
-    border-radius:var(--radius-lg);
-    background:var(--surface);
-    -webkit-backdrop-filter:blur(20px) saturate(1.3);
-    backdrop-filter:blur(20px) saturate(1.3);
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.06),
-      0 30px 60px -30px rgba(0,0,0,0.6);
-    transition:border-color .3s ease;
+    scroll-margin-top:calc(var(--header-h) + 16px);
+    grid-template-rows:auto 1fr;
+    padding-top:28px;
+    border-top:1px solid var(--rule);
   }
-  .plugin:hover{border-color:rgba(255,255,255,0.12);}
-  .plugin.is-playing{border-color:rgba(217,164,65,0.28);}
-  @media (max-width:860px){
-    .plugin{grid-template-columns:1fr;}
+  .plugin + .plugin{margin-top:clamp(96px, 14vh, 152px);}
+
+  .plugin-head{grid-column:1 / span 4;grid-row:1;}
+  .plugin-foot{grid-column:1 / span 4;grid-row:2;align-self:end;}
+  .plugin-demo{grid-column:6 / span 7;grid-row:1 / span 2;}
+
+  .plugin-no{
+    margin:0 0 20px;
+    color:var(--fg-3);
+    font-size:var(--small);
+  }
+  .plugin-no::before{content:"No. " counter(plugin, decimal-leading-zero);}
+  .plugin-no .tag{margin-left:14px;color:var(--fg-2);}
+  .plugin h2{
+    margin:0;
+    font-weight:600;
+    font-stretch:85%;
+    font-size:clamp(2.25rem, 4.2vw, 3.5rem);
+    line-height:0.98;
+    letter-spacing:-0.02em;
+  }
+  .plugin-desc{
+    margin:20px 0 0;
+    max-width:30em;
+    color:var(--fg-2);
+    font-size:1.0625rem;
+    line-height:1.55;
   }
 
-  /* media: drop one or more <img> into .media; the script turns the first into
-     the stage and the rest into a thumbnail strip */
-  .media{display:flex;flex-direction:column;gap:10px;min-width:0;}
-  .media > img{width:100%;height:auto;display:block;border-radius:var(--radius-md);}
+  .specs{margin:40px 0 0;font-size:0.9375rem;}
+  .specs div{
+    display:grid;
+    grid-template-columns:7rem 1fr;
+    gap:var(--col-gap);
+    padding:10px 0;
+    border-top:1px solid var(--rule-soft);
+  }
+  .specs div:last-child{border-bottom:1px solid var(--rule-soft);}
+  .specs dt{color:var(--fg-3);}
+  .specs dd{margin:0;}
+
+  .buy{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    margin-top:28px;
+  }
+  .price{font-size:1.75rem;font-weight:500;letter-spacing:-0.02em;}
+  .buy-btn{
+    height:48px;
+    padding:0 28px;
+    border-radius:2px;
+    background:var(--fg);
+    color:var(--bg);
+    font-weight:600;
+    font-size:0.9375rem;
+    transition:background-color .15s ease;
+  }
+  .buy-btn:hover{background:#fff;}
+
+  /* media: put one or more <img> in .media. The first becomes the main view;
+     with more than one, each img's data-label becomes a view switch. */
   .media-stage{
-    position:relative;
     display:flex;
     align-items:center;
     justify-content:center;
     width:100%;
-    aspect-ratio:4 / 3;
-    padding:clamp(10px, 2vw, 20px);
-    border:1px solid var(--line);
-    border-radius:var(--radius-md);
-    background:
-      radial-gradient(80% 70% at 50% 40%, rgba(255,255,255,0.04), transparent 70%),
-      var(--well);
+    aspect-ratio:16 / 10;
+    padding:clamp(12px, 3vw, 36px);
+    border-radius:2px;
+    background:var(--panel);
     cursor:zoom-in;
-    overflow:hidden;
   }
   .media-stage img{
+    display:block;
     max-width:100%;
     max-height:100%;
     width:auto;
     height:auto;
     object-fit:contain;
-    display:block;
-    border-radius:6px;
-    box-shadow:0 18px 40px rgba(0,0,0,0.55);
-    transition:transform .5s var(--ease);
   }
-  .media-stage:hover img{transform:scale(1.015);}
-  .media-stage .zoom{
-    position:absolute;
-    right:12px;
-    bottom:12px;
-    width:30px;height:30px;
+  .media > img{display:block;width:100%;height:auto;margin-bottom:12px;}
+  .media-views{
     display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:50%;
-    background:rgba(8,9,11,0.7);
-    border:1px solid var(--line-hi);
-    color:var(--text-1);
-    opacity:0;
-    transition:opacity .2s ease;
+    gap:20px;
+    margin-top:12px;
+    font-size:var(--small);
   }
-  .media-stage .zoom svg{width:14px;height:14px;}
-  .media-stage:hover .zoom,
-  .media-stage:focus-visible .zoom{opacity:1;}
-  .media-stage:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
-  @media (hover:none){ .media-stage .zoom{opacity:1;} }
+  .media-view{color:var(--fg-3);padding:2px 0;border-bottom:1px solid transparent;transition:color .15s ease;}
+  .media-view:hover{color:var(--fg-2);}
+  .media-view[aria-pressed="true"]{color:var(--fg);border-bottom-color:var(--fg);}
 
-  .media-thumbs{display:flex;gap:8px;flex-wrap:wrap;}
-  .media-thumb{
-    width:64px;height:48px;
-    padding:3px;
-    border:1px solid var(--line);
-    border-radius:var(--radius-sm);
-    background:var(--well);
-    cursor:pointer;
-    opacity:.55;
-    transition:opacity .2s ease, border-color .2s ease;
-  }
-  .media-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:4px;}
-  .media-thumb:hover{opacity:.85;}
-  .media-thumb[aria-pressed="true"]{opacity:1;border-color:var(--line-hi);}
-  .media-thumb:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
-
-  /* body */
-  .plugin-body{
-    display:flex;
-    flex-direction:column;
-    min-width:0;
-    padding:clamp(4px, 1vw, 12px) clamp(0px, 1vw, 8px) 4px 0;
-  }
-  .plugin-meta{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin-bottom:14px;
-  }
-  .plugin-meta .num::before{content:counter(plugin, decimal-leading-zero);}
-  .plugin-meta .rule{flex:1;height:1px;background:var(--line);}
-  .badge{
-    font-family:var(--font-mono);
-    font-size:0.62rem;
-    font-weight:500;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--gold-soft);
-    padding:3px 8px;
-    border:1px solid rgba(217,164,65,0.35);
-    border-radius:4px;
-  }
-  .plugin h2{
-    margin:0 0 10px;
-    font-family:var(--font-display);
-    font-weight:600;
-    font-size:clamp(1.6rem, 2.8vw, 2.1rem);
-    line-height:1.1;
-    letter-spacing:-0.025em;
-  }
-  .plugin .tagline{
-    margin:0;
-    max-width:36em;
-    color:var(--text-1);
-    font-size:0.98rem;
-    line-height:1.6;
-    text-wrap:pretty;
-  }
-
-  /* ---------- A/B demo player ---------- */
+  /* ---------- A/B player ---------- */
   .ab-player{
-    margin-top:26px;
-    padding:16px 18px 14px;
-    border:1px solid var(--line);
-    border-radius:var(--radius-md);
-    background:var(--surface-2);
-  }
-  .transport{
-    display:flex;
+    display:grid;
+    grid-template-columns:auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "play wave time"
+      "dry  fade wet";
     align-items:center;
-    gap:14px;
+    gap:18px 20px;
+    margin-top:28px;
+    padding-top:24px;
+    border-top:1px solid var(--rule-soft);
   }
+  .play-btn{grid-area:play;}
+  .wave{grid-area:wave;}
+  .time{grid-area:time;}
+  .xfade-dry{grid-area:dry;}
+  .xfade-range{grid-area:fade;}
+  .xfade-wet{grid-area:wet;}
   .play-btn{
-    width:44px;height:44px;
-    flex-shrink:0;
-    display:flex;
+    display:inline-flex;
     align-items:center;
-    justify-content:center;
-    border-radius:50%;
-    border:1px solid var(--line-hi);
-    background:rgba(255,255,255,0.04);
-    color:var(--text-0);
-    cursor:pointer;
-    transition:background-color .2s ease, border-color .2s ease, color .2s ease;
+    gap:10px;
+    height:36px;
+    min-width:96px;
+    padding:0 14px;
+    border:1px solid var(--rule);
+    border-radius:2px;
+    font-size:0.875rem;
+    transition:border-color .15s ease;
   }
-  .play-btn:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.28);}
-  .play-btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
-  .play-btn svg{width:14px;height:14px;fill:currentColor;display:block;}
-  .play-btn .ic-play{margin-left:2px;}
+  .play-btn:hover{border-color:var(--fg-2);}
+  .play-btn svg{width:10px;height:10px;fill:currentColor;flex-shrink:0;}
   .play-btn .ic-pause{display:none;}
-  .play-btn.is-playing{background:var(--gold);border-color:var(--gold);color:var(--ink);}
+  .play-btn.is-playing{border-color:var(--fg);}
   .play-btn.is-playing .ic-play{display:none;}
   .play-btn.is-playing .ic-pause{display:block;}
-  .play-btn.is-loading{pointer-events:none;}
-  .play-btn.is-loading svg{display:none;}
-  .play-btn.is-loading::after{
-    content:"";
-    width:14px;height:14px;
-    border-radius:50%;
-    border:1.5px solid rgba(255,255,255,0.2);
-    border-top-color:var(--text-0);
-    animation:spin .7s linear infinite;
-  }
-  @keyframes spin{to{transform:rotate(360deg);}}
+  .play-btn.is-loading{pointer-events:none;color:var(--fg-3);}
 
-  /* waveform seek: the canvas draws, a transparent range on top handles input */
-  .wave{
-    position:relative;
-    flex:1;
-    min-width:0;
-    height:44px;
-    border-radius:4px;
-  }
+  .wave{position:relative;height:40px;min-width:0;}
   .wave canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
   .wave .seek{
     position:absolute;
@@ -428,205 +309,89 @@
     opacity:0;
     cursor:pointer;
   }
-  .wave:has(.seek:focus-visible){outline:2px solid var(--gold);outline-offset:4px;}
+  .wave:has(.seek:focus-visible){outline:1px solid var(--fg);outline-offset:4px;}
 
-  .time{
-    flex-shrink:0;
-    font-family:var(--font-mono);
-    font-size:0.72rem;
-    font-variant-numeric:tabular-nums;
-    color:var(--text-2);
-    white-space:nowrap;
-  }
-  .time .cur{color:var(--text-1);}
+  .time{font-size:var(--small);color:var(--fg-3);white-space:nowrap;text-align:right;}
+  .time .cur{color:var(--fg-2);}
 
-  /* dry / wet crossfader */
-  .xfade{
-    margin-top:14px;
-    padding-top:14px;
-    border-top:1px solid var(--line);
-  }
-  .xfade-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    margin-bottom:6px;
-  }
   .xfade-end{
-    padding:2px 0;
-    border:0;
-    background:none;
-    font-family:var(--font-mono);
-    font-size:0.66rem;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--text-2);
-    cursor:pointer;
-    transition:color .2s ease;
-  }
-  .xfade-end:hover{color:var(--text-1);}
-  .xfade-end.is-active{color:var(--text-0);}
-  .xfade-end:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:2px;}
-  .xfade-readout{
-    font-family:var(--font-mono);
-    font-size:0.7rem;
-    color:var(--text-2);
-    font-variant-numeric:tabular-nums;
+    font-size:var(--small);
+    color:var(--fg-3);
     white-space:nowrap;
+    transition:color .15s ease;
   }
-  .xfade-readout b{font-weight:500;color:var(--gold-soft);}
-  .xfade-track{
-    position:relative;
-    height:30px;
-  }
-  /* tick marks at 0 / 25 / 50 / 75 / 100 */
-  .xfade-track::before{
-    content:"";
-    position:absolute;
-    left:7px;right:7px;
-    top:50%;
-    height:11px;
-    transform:translateY(-50%);
-    background-image:
-      linear-gradient(var(--line-hi), var(--line-hi)),
-      linear-gradient(var(--line), var(--line)),
-      linear-gradient(var(--line-hi), var(--line-hi)),
-      linear-gradient(var(--line), var(--line)),
-      linear-gradient(var(--line-hi), var(--line-hi));
-    background-size:1px 100%;
-    background-position:0 0, 25% 0, 50% 0, 75% 0, 100% 0;
-    background-repeat:no-repeat;
-    pointer-events:none;
-  }
+  .xfade-dry{text-align:left;}
+  .xfade-wet{text-align:right;}
+  .xfade-end:hover{color:var(--fg-2);}
+  .xfade-dry.is-active{color:var(--fg);}
+  .xfade-wet.is-active{color:var(--wet);}
+
   .xfade-range{
     --mix:0%;
-    position:relative;
     -webkit-appearance:none;
     appearance:none;
     width:100%;
-    height:30px;
+    height:24px;
     margin:0;
     background:transparent;
     cursor:pointer;
   }
   .xfade-range:focus{outline:none;}
+  .xfade-range:focus-visible{outline:1px solid var(--fg);outline-offset:2px;}
   .xfade-range::-webkit-slider-runnable-track{
     height:2px;
-    border-radius:1px;
-    background:linear-gradient(90deg, var(--gold) var(--mix), rgba(255,255,255,0.14) var(--mix));
+    background:linear-gradient(90deg, var(--wet) var(--mix), var(--rule) var(--mix));
   }
-  .xfade-range::-moz-range-track{height:2px;border-radius:1px;background:rgba(255,255,255,0.14);}
-  .xfade-range::-moz-range-progress{height:2px;border-radius:1px;background:var(--gold);}
-  /* fader cap: a small machined block with a centre index line */
+  .xfade-range::-moz-range-track{height:2px;background:var(--rule);}
+  .xfade-range::-moz-range-progress{height:2px;background:var(--wet);}
   .xfade-range::-webkit-slider-thumb{
     -webkit-appearance:none;
-    width:14px;height:26px;
-    margin-top:-12px;
-    border-radius:3px;
-    border:1px solid rgba(0,0,0,0.5);
-    background:
-      linear-gradient(90deg, transparent 6px, #5d6168 6px, #5d6168 7px, transparent 7px),
-      linear-gradient(180deg, #f5f6f7, #c4c8ce);
-    box-shadow:0 3px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
-    cursor:grab;
+    width:4px;height:18px;
+    margin-top:-8px;
+    border:0;
+    border-radius:0;
+    background:var(--fg);
   }
   .xfade-range::-moz-range-thumb{
-    width:12px;height:24px;
-    border-radius:3px;
-    border:1px solid rgba(0,0,0,0.5);
-    background:
-      linear-gradient(90deg, transparent 5.5px, #5d6168 5.5px, #5d6168 6.5px, transparent 6.5px),
-      linear-gradient(180deg, #f5f6f7, #c4c8ce);
-    box-shadow:0 3px 8px rgba(0,0,0,0.5);
-    cursor:grab;
-  }
-  .xfade-range:active::-webkit-slider-thumb{cursor:grabbing;}
-  .xfade-range:focus-visible::-webkit-slider-thumb{outline:2px solid var(--gold);outline-offset:2px;}
-  .xfade-range:focus-visible::-moz-range-thumb{outline:2px solid var(--gold);outline-offset:2px;}
-
-  /* ---------- purchase ---------- */
-  .purchase{
-    margin-top:auto;
-    padding-top:26px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-  }
-  .price{
-    font-family:var(--font-display);
-    font-size:1.75rem;
-    font-weight:600;
-    letter-spacing:-0.02em;
-    font-variant-numeric:tabular-nums;
-  }
-  .buy-btn{
-    display:inline-flex;
-    align-items:center;
-    gap:10px;
-    padding:13px 22px 13px 26px;
-    border-radius:999px;
-    border:1px solid var(--gold);
-    background:var(--gold);
-    color:var(--ink);
-    font-weight:600;
-    font-size:0.92rem;
-    letter-spacing:0.005em;
-    white-space:nowrap;
-    cursor:pointer;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,0.3), 0 8px 24px -10px rgba(217,164,65,0.55);
-    transition:background-color .2s ease, box-shadow .2s ease;
-  }
-  .buy-btn svg{width:14px;height:14px;transition:transform .25s var(--ease);}
-  .buy-btn:hover{background:var(--gold-soft);}
-  .buy-btn:hover svg{transform:translateX(3px);}
-  .buy-btn:focus-visible{outline:2px solid var(--text-0);outline-offset:3px;}
-  @media (max-width:520px){
-    .purchase .buy-btn{flex:1;justify-content:center;}
+    width:4px;height:18px;
+    border:0;
+    border-radius:0;
+    background:var(--fg);
   }
 
   /* ---------- footer ---------- */
   .site-footer{
-    margin-top:clamp(72px, 12vh, 120px);
-    border-top:1px solid var(--line);
-    padding:32px 0 calc(40px + env(safe-area-inset-bottom));
-    color:var(--text-2);
-    font-size:0.82rem;
+    margin-top:clamp(120px, 18vh, 200px);
+    padding:28px 0 calc(48px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--rule);
+    color:var(--fg-3);
+    font-size:var(--small);
   }
-  .site-footer .shell{
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px 32px;
-  }
-  .site-footer a{color:var(--text-1);transition:color .2s ease;}
-  .site-footer a:hover{color:var(--text-0);}
+  .site-footer .grid > *{grid-column:span 4;}
+  .site-footer a{color:var(--fg-2);transition:color .15s ease;}
+  .site-footer a:hover{color:var(--fg);}
+  .site-footer .f-right{text-align:right;}
 
   /* ---------- toast ---------- */
   .toast{
     position:fixed;
-    left:50%;
-    bottom:calc(28px + env(safe-area-inset-bottom));
+    left:var(--gutter);
+    bottom:calc(24px + env(safe-area-inset-bottom));
     z-index:200;
-    max-width:min(440px, calc(100vw - 32px));
-    padding:14px 20px;
-    border:1px solid var(--line-hi);
-    border-radius:var(--radius-md);
-    background:rgba(16,18,22,0.92);
-    -webkit-backdrop-filter:blur(16px);
-    backdrop-filter:blur(16px);
-    box-shadow:0 20px 50px rgba(0,0,0,0.5);
-    font-size:0.9rem;
+    max-width:min(420px, calc(100vw - 2 * var(--gutter)));
+    padding:14px 18px;
+    border:1px solid var(--rule);
+    border-radius:2px;
+    background:#171715;
+    font-size:0.9375rem;
     line-height:1.45;
     opacity:0;
+    transform:translateY(8px);
     pointer-events:none;
-    transform:translateX(-50%) translateY(16px);
-    transition:opacity .3s ease, transform .3s var(--ease);
+    transition:opacity .2s ease, transform .2s ease;
   }
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
-  .toast a{color:var(--gold-soft);text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+  .toast.show{opacity:1;transform:none;pointer-events:auto;}
+  .toast a{text-decoration:underline;text-underline-offset:3px;}
 
   /* ---------- lightbox ---------- */
   .lightbox{
@@ -634,129 +399,124 @@
     inset:0;
     z-index:300;
     display:none;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
-    padding:clamp(16px, 5vw, 56px);
-    background:rgba(5,6,7,0.8);
-    -webkit-backdrop-filter:blur(14px);
-    backdrop-filter:blur(14px);
+    padding:72px var(--gutter) 40px;
+    background:rgba(11,11,10,0.96);
     opacity:0;
-    transition:opacity .22s ease;
+    transition:opacity .2s ease;
+    cursor:zoom-out;
   }
   .lightbox.is-open{display:flex;}
   .lightbox.is-shown{opacity:1;}
-  .lightbox-panel{
-    position:relative;
-    max-width:min(1100px, 100%);
-    max-height:100%;
-    transform:scale(.98);
-    transition:transform .3s var(--ease);
-  }
-  .lightbox.is-shown .lightbox-panel{transform:scale(1);}
-  .lightbox-panel img{
+  .lightbox img{
     display:block;
-    max-width:100%;
-    max-height:calc(100vh - clamp(80px, 12vw, 150px));
+    max-width:min(1280px, 100%);
+    max-height:calc(100vh - 160px);
     width:auto;height:auto;
-    border-radius:var(--radius-md);
-    box-shadow:0 30px 80px rgba(0,0,0,0.7);
   }
   .lightbox-close{
     position:absolute;
-    top:-44px;right:0;
-    width:34px;height:34px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:50%;
-    border:1px solid var(--line-hi);
-    background:rgba(16,18,22,0.9);
-    color:var(--text-0);
-    cursor:pointer;
-    transition:background-color .2s ease;
+    top:20px;
+    right:var(--gutter);
+    font-size:0.9375rem;
+    color:var(--fg-2);
   }
-  .lightbox-close svg{width:14px;height:14px;}
-  .lightbox-close:hover{background:#22262c;}
-  .lightbox-caption{
-    margin:12px 0 0;
-    text-align:center;
-    font-size:0.78rem;
-    color:var(--text-2);
-  }
+  .lightbox-close:hover{color:var(--fg);}
+  .lightbox-caption{margin:16px 0 0;font-size:var(--small);color:var(--fg-3);}
 
-  /* ---------- motion ---------- */
+  /* ---------- responsive ---------- */
+  @media (max-width:960px){
+    .intro h1{grid-column:1 / -1;}
+    .intro p{grid-column:1 / span 8;}
+    .plugin{grid-template-rows:none;}
+    .plugin-head,.plugin-foot,.plugin-demo{grid-column:1 / -1;grid-row:auto;}
+    .plugin-demo{margin-top:32px;}
+    .plugin-foot{margin-top:8px;}
+    .site-footer .grid > *{grid-column:1 / -1;}
+    .site-footer .f-right{text-align:left;}
+    .site-footer .grid{row-gap:8px;}
+  }
+  @media (max-width:640px){
+    .intro p{grid-column:1 / -1;}
+    .catalog-row{grid-template-columns:2.5rem minmax(0, 1fr) auto;}
+    .catalog .c-type{display:none;}
+    .ab-player{
+      grid-template-columns:1fr 1fr;
+      grid-template-areas:
+        "play time"
+        "wave wave"
+        "fade fade"
+        "dry  wet";
+      gap:12px 14px;
+    }
+    .play-btn{justify-self:start;}
+    .plugin-foot .specs{margin-top:32px;}
+    .buy-btn{flex:1;}
+  }
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto;}
-    *,*::before,*::after{transition-duration:0s !important;}
-    .play-btn.is-loading::after{animation:none;}
-    .media-stage:hover img{transform:none;}
+    *{transition:none !important;}
   }
 </style>
 </head>
 <body id="top">
 
   <div class="backdrop" aria-hidden="true"></div>
-  <div class="grain" aria-hidden="true"></div>
 
   <header class="site-header" id="siteHeader">
-    <div class="shell">
-      <a class="brand" href="#top" aria-label="Sprizzle Audio, back to top">
-        <img src="assets/favicon.svg" alt="" width="28" height="28">
-        <span>Sprizzle <span class="brand-sub">Audio</span></span>
+    <div class="wrap">
+      <a class="wordmark" href="#top">
+        <img src="assets/favicon.svg" alt="" width="22" height="22" onerror="this.remove()">
+        Sprizzle Audio
       </a>
       <nav class="site-nav" aria-label="Primary">
-        <a href="#plugins" class="nav-hide-sm">Plugins</a>
-        <a class="nav-cta" href="https://mail.google.com/mail/u/0/?fs=1&amp;tf=cm&amp;source=mailto&amp;to=spryte@sprizzle.io" target="_blank" rel="noopener">Support</a>
+        <a href="#catalog">Plugins</a>
+        <a href="https://mail.google.com/mail/u/0/?fs=1&amp;tf=cm&amp;source=mailto&amp;to=spryte@sprizzle.io" target="_blank" rel="noopener">Support</a>
       </nav>
     </div>
   </header>
 
-  <main class="shell">
+  <main>
 
-    <section class="hero" aria-labelledby="heroTitle">
-      <div class="hero-copy">
-        <span class="label">Sprizzle Audio &mdash; Plugins</span>
-        <!-- FILL IN: headline + intro copy -->
-        <h1 id="heroTitle">Strange processors <span class="dim">for voices and everything after&nbsp;them.</span></h1>
-        <p class="hero-lede">Resynthesis, harmonization and modulation tools, built in-house. Every demo below is a live A/B: press play, then pull the crossfader from dry to fully processed.</p>
-      </div>
-
-      <!-- filled in by the script from the plugin cards below, so it never goes stale -->
-      <aside class="lineup" aria-label="Plugin lineup">
-        <div class="lineup-head">
-          <span class="label">The lineup</span>
-          <span class="label" id="pluginCount"></span>
-        </div>
-        <ol id="pluginIndex"></ol>
-      </aside>
+    <!-- FILL IN: intro copy -->
+    <section class="intro wrap grid">
+      <h1>Vocal resynthesis, harmony and modulation plugins from Sprizzle&nbsp;Audio.</h1>
+      <p>Every demo below is a live A/B. Press play, then blend from the dry signal to fully processed. Both stems stay sample-locked, so all you hear is the plugin.</p>
     </section>
 
-    <section class="plugins" id="plugins" aria-label="Plugins">
+    <!-- filled in by the script from the plugin sections, so it never goes stale -->
+    <section class="catalog wrap" id="catalog" aria-label="Plugin index">
+      <div class="catalog-row catalog-head" aria-hidden="true">
+        <span>No.</span><span>Plugin</span><span class="c-type">Type</span><span class="c-price">Price</span>
+      </div>
+      <ol id="catalogList"></ol>
+    </section>
+
+    <div class="plugins wrap">
 
       <!-- ============================================================
-           PLUGIN CARD TEMPLATE — copy everything from "PLUGIN START"
-           to "PLUGIN END" to add a new plugin. Search for "FILL IN" to
-           find every spot that needs your data. Numbering, the lineup
-           index in the hero and the gallery thumbnails are automatic.
+           PLUGIN TEMPLATE: copy everything from "PLUGIN START" to
+           "PLUGIN END" to add a plugin. Search "FILL IN" for every spot
+           that needs your data. Numbering and the index are automatic.
            ============================================================ -->
 
       <!-- PLUGIN START -->
-      <article class="plugin">
-        <!-- FILL IN: one or more screenshots. The first is the main image; any
-             extra ones become clickable thumbnails. Spaces in file names → %20 -->
-        <div class="media">
-          <img src="assets/plugins/Demoncore2picture.PNG" alt="Demon Core II interface">
-          <img src="assets/plugins/demoncore2%20expanded.PNG" alt="Demon Core II interface, expanded view">
+      <article class="plugin grid">
+        <div class="plugin-head">
+          <p class="plugin-no"><span class="tag">New</span></p>
+          <h2>Demon Core II</h2>
+          <p class="plugin-desc">Talkbox-style vocal resynthesis and ML-backed auto-harmonization.</p>
         </div>
 
-        <div class="plugin-body">
-          <div class="plugin-meta">
-            <span class="label num"></span>
-            <span class="rule" aria-hidden="true"></span>
-            <span class="badge">New</span>
+        <div class="plugin-demo">
+          <!-- FILL IN: screenshots. data-label names each view (only shown when
+               there's more than one). Spaces in file names → %20 -->
+          <div class="media">
+            <img src="assets/plugins/Demoncore2picture.PNG" alt="Demon Core II interface" data-label="Compact">
+            <img src="assets/plugins/demoncore2%20expanded.PNG" alt="Demon Core II interface, expanded" data-label="Expanded">
           </div>
-          <h2>Demon Core II</h2>
-          <p class="tagline">Talkbox-style vocal resynthesis and ML-backed auto-harmonization.</p>
 
           <div class="ab-player">
             <!-- FILL IN: dry / processed demo files -->
@@ -767,57 +527,50 @@
               <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
             </audio>
 
-            <div class="transport">
-              <button class="play-btn" type="button" aria-label="Play demo">
-                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
-                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
-              </button>
-              <div class="wave">
-                <canvas aria-hidden="true"></canvas>
-                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
-              </div>
-              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            <button class="play-btn" type="button" aria-label="Play demo">
+              <svg class="ic-play" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5v9l8-4.5z"/></svg>
+              <svg class="ic-pause" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5h3v9H1zM6 0.5h3v9H6z"/></svg>
+              <span class="pb-label">Play</span>
+            </button>
+            <div class="wave">
+              <canvas aria-hidden="true"></canvas>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
             </div>
+            <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
 
-            <div class="xfade">
-              <div class="xfade-head">
-                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
-                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
-                <!-- FILL IN: name shown on the processed end of the fader -->
-                <button type="button" class="xfade-end xfade-wet">Demon Core II</button>
-              </div>
-              <div class="xfade-track">
-                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
-              </div>
-            </div>
+            <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+            <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+            <!-- FILL IN: name on the processed end of the blend -->
+            <button type="button" class="xfade-end xfade-wet">Demon Core II</button>
           </div>
+        </div>
 
-          <div class="purchase">
+        <div class="plugin-foot">
+          <dl class="specs">
+            <div><dt>Type</dt><dd data-spec="type">Vocal resynthesis, harmonizer</dd></div>
+            <!-- FILL IN (optional): <div><dt>Formats</dt><dd>VST3, AU</dd></div> -->
+          </dl>
+          <div class="buy">
             <span class="price">$300</span>
             <!-- FILL IN: Stripe checkout link -->
-            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">
-              Buy now
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-            </button>
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">Buy now</button>
           </div>
         </div>
       </article>
       <!-- PLUGIN END -->
 
       <!-- PLUGIN START -->
-      <article class="plugin">
-        <div class="media">
-          <img src="assets/plugins/dextrodelaypicture.PNG" alt="Dextro Delay interface">
-        </div>
-
-        <div class="plugin-body">
-          <div class="plugin-meta">
-            <span class="label num"></span>
-            <span class="rule" aria-hidden="true"></span>
-            <span class="badge">Free</span>
-          </div>
+      <article class="plugin grid">
+        <div class="plugin-head">
+          <p class="plugin-no"><span class="tag">New</span></p>
           <h2>Dextro Delay</h2>
-          <p class="tagline">Tired of routing sidechain buses? This delay sidechains itself like a good little bot. Inspired by NyQuil.</p>
+          <p class="plugin-desc">Tired of routing sidechain buses? This delay sidechains itself like a good little bot. Inspired by NyQuil.</p>
+        </div>
+
+        <div class="plugin-demo">
+          <div class="media">
+            <img src="assets/plugins/dextrodelaypicture.PNG" alt="Dextro Delay interface">
+          </div>
 
           <div class="ab-player">
             <audio class="audio-before" preload="none" loop>
@@ -827,56 +580,48 @@
               <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
             </audio>
 
-            <div class="transport">
-              <button class="play-btn" type="button" aria-label="Play demo">
-                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
-                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
-              </button>
-              <div class="wave">
-                <canvas aria-hidden="true"></canvas>
-                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
-              </div>
-              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+            <button class="play-btn" type="button" aria-label="Play demo">
+              <svg class="ic-play" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5v9l8-4.5z"/></svg>
+              <svg class="ic-pause" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5h3v9H1zM6 0.5h3v9H6z"/></svg>
+              <span class="pb-label">Play</span>
+            </button>
+            <div class="wave">
+              <canvas aria-hidden="true"></canvas>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
             </div>
+            <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
 
-            <div class="xfade">
-              <div class="xfade-head">
-                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
-                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
-                <button type="button" class="xfade-end xfade-wet">Dextro Delay</button>
-              </div>
-              <div class="xfade-track">
-                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
-              </div>
-            </div>
+            <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+            <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+            <button type="button" class="xfade-end xfade-wet">Dextro Delay</button>
           </div>
+        </div>
 
-          <div class="purchase">
+        <div class="plugin-foot">
+          <dl class="specs">
+            <div><dt>Type</dt><dd data-spec="type">Self-ducking delay</dd></div>
+          </dl>
+          <div class="buy">
             <span class="price">Free</span>
-            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-download-url">
-              Download
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v9M4 8l4 4 4-4"/></svg>
-            </button>
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-download-url">Download</button>
           </div>
         </div>
       </article>
       <!-- PLUGIN END -->
 
       <!-- PLUGIN START -->
-      <article class="plugin">
-        <div class="media">
-          <img src="assets/plugins/demoncore1%20blue.PNG" alt="NeuronLink Demon Core interface, blue theme">
-          <img src="assets/plugins/demoncore1%20red.PNG" alt="NeuronLink Demon Core interface, red theme">
-        </div>
-
-        <div class="plugin-body">
-          <div class="plugin-meta">
-            <span class="label num"></span>
-            <span class="rule" aria-hidden="true"></span>
-            <span class="badge">New</span>
-          </div>
+      <article class="plugin grid">
+        <div class="plugin-head">
+          <p class="plugin-no"><span class="tag">New</span></p>
           <h2>NeuronLink Demon Core</h2>
-          <p class="tagline">Use machine learning in &ldquo;Demon Mode&rdquo; to predict and generate harmonies while feeding each voice through its own instance of NeuronLink.</p>
+          <p class="plugin-desc">Use machine learning in Demon Mode to predict and generate harmonies, with each voice fed through its own instance of NeuronLink.</p>
+        </div>
+
+        <div class="plugin-demo">
+          <div class="media">
+            <img src="assets/plugins/demoncore1%20blue.PNG" alt="NeuronLink Demon Core interface, blue" data-label="Blue">
+            <img src="assets/plugins/demoncore1%20red.PNG" alt="NeuronLink Demon Core interface, red" data-label="Red">
+          </div>
 
           <div class="ab-player">
             <audio class="audio-before" preload="none" loop>
@@ -886,55 +631,47 @@
               <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
             </audio>
 
-            <div class="transport">
-              <button class="play-btn" type="button" aria-label="Play demo">
-                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
-                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
-              </button>
-              <div class="wave">
-                <canvas aria-hidden="true"></canvas>
-                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
-              </div>
-              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
-            </div>
-
-            <div class="xfade">
-              <div class="xfade-head">
-                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
-                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
-                <button type="button" class="xfade-end xfade-wet">Demon Mode</button>
-              </div>
-              <div class="xfade-track">
-                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
-              </div>
-            </div>
-          </div>
-
-          <div class="purchase">
-            <span class="price">$125</span>
-            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">
-              Buy now
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            <button class="play-btn" type="button" aria-label="Play demo">
+              <svg class="ic-play" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5v9l8-4.5z"/></svg>
+              <svg class="ic-pause" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5h3v9H1zM6 0.5h3v9H6z"/></svg>
+              <span class="pb-label">Play</span>
             </button>
+            <div class="wave">
+              <canvas aria-hidden="true"></canvas>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+            </div>
+            <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+
+            <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+            <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+            <button type="button" class="xfade-end xfade-wet">Demon Mode</button>
+          </div>
+        </div>
+
+        <div class="plugin-foot">
+          <dl class="specs">
+            <div><dt>Type</dt><dd data-spec="type">ML harmonizer</dd></div>
+          </dl>
+          <div class="buy">
+            <span class="price">$125</span>
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">Buy now</button>
           </div>
         </div>
       </article>
       <!-- PLUGIN END -->
 
       <!-- PLUGIN START -->
-      <article class="plugin">
-        <div class="media">
-          <img src="vsts/neuronlink/neuralinkpicture.PNG" alt="NeuronLink interface">
+      <article class="plugin grid">
+        <div class="plugin-head">
+          <p class="plugin-no"><span class="tag">New</span></p>
+          <h2>NeuronLink</h2>
+          <p class="plugin-desc">Pitch-tracked ring modulator with relative tuning.</p>
         </div>
 
-        <div class="plugin-body">
-          <div class="plugin-meta">
-            <span class="label num"></span>
-            <span class="rule" aria-hidden="true"></span>
-            <span class="badge">New</span>
+        <div class="plugin-demo">
+          <div class="media">
+            <img src="vsts/neuronlink/neuralinkpicture.PNG" alt="NeuronLink interface">
           </div>
-          <h2>NeuronLink</h2>
-          <p class="tagline">Pitch-tracked ring modulator with relative tuning.</p>
 
           <div class="ab-player">
             <audio class="audio-before" preload="none" loop>
@@ -944,68 +681,58 @@
               <source src="vsts/neuronlink/AFTERNEURALINK.mp3" type="audio/mpeg">
             </audio>
 
-            <div class="transport">
-              <button class="play-btn" type="button" aria-label="Play demo">
-                <svg class="ic-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.79-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z"/></svg>
-                <svg class="ic-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
-              </button>
-              <div class="wave">
-                <canvas aria-hidden="true"></canvas>
-                <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
-              </div>
-              <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
-            </div>
-
-            <div class="xfade">
-              <div class="xfade-head">
-                <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
-                <span class="xfade-readout"><b class="wetpct">0</b>% wet</span>
-                <button type="button" class="xfade-end xfade-wet">NeuronLink</button>
-              </div>
-              <div class="xfade-track">
-                <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
-              </div>
-            </div>
-          </div>
-
-          <div class="purchase">
-            <span class="price">$50</span>
-            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">
-              Buy now
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            <button class="play-btn" type="button" aria-label="Play demo">
+              <svg class="ic-play" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5v9l8-4.5z"/></svg>
+              <svg class="ic-pause" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5h3v9H1zM6 0.5h3v9H6z"/></svg>
+              <span class="pb-label">Play</span>
             </button>
+            <div class="wave">
+              <canvas aria-hidden="true"></canvas>
+              <input type="range" class="seek" min="0" max="1000" value="0" aria-label="Seek demo playback">
+            </div>
+            <span class="time"><span class="cur">0:00</span> / <span class="dur">0:00</span></span>
+
+            <button type="button" class="xfade-end xfade-dry is-active">Dry</button>
+            <input type="range" class="xfade-range" min="0" max="100" value="0" aria-label="Blend from dry to processed signal">
+            <button type="button" class="xfade-end xfade-wet">NeuronLink</button>
+          </div>
+        </div>
+
+        <div class="plugin-foot">
+          <dl class="specs">
+            <div><dt>Type</dt><dd data-spec="type">Ring modulator</dd></div>
+          </dl>
+          <div class="buy">
+            <span class="price">$50</span>
+            <button class="buy-btn" type="button" data-checkout-url="FILL-IN-your-stripe-checkout-url">Buy now</button>
           </div>
         </div>
       </article>
       <!-- PLUGIN END -->
 
-    </section>
+    </div>
   </main>
 
   <footer class="site-footer">
-    <div class="shell">
+    <div class="wrap grid">
+      <span>Sprizzle Audio</span>
+      <span>Support: <a href="https://mail.google.com/mail/u/0/?fs=1&amp;tf=cm&amp;source=mailto&amp;to=spryte@sprizzle.io" target="_blank" rel="noopener">spryte@sprizzle.io</a></span>
       <!-- FILL IN: footer text -->
-      <span>&copy; 2026 Sprizzle Audio. All plugins sold as-is, digital delivery only.</span>
-      <a href="https://mail.google.com/mail/u/0/?fs=1&amp;tf=cm&amp;source=mailto&amp;to=spryte@sprizzle.io" target="_blank" rel="noopener">spryte@sprizzle.io</a>
+      <span class="f-right">&copy; 2026. All plugins sold as-is, digital delivery only.</span>
     </div>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged plugin image">
-    <div class="lightbox-panel" id="lightboxPanel">
-      <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close image">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-      </button>
-      <img id="lightboxImg" src="" alt="">
-      <p class="lightbox-caption" id="lightboxCaption"></p>
-    </div>
+    <button class="lightbox-close" id="lightboxClose" type="button">Close</button>
+    <img id="lightboxImg" src="" alt="">
+    <p class="lightbox-caption" id="lightboxCaption"></p>
   </div>
 
   <!--
-    Checkout: every buy button redirects to the URL in data-checkout-url.
-    The old iframe checkout modal (for a processor that allows framing) is
-    still in VST.html if you ever want to bring it back.
+    Checkout: every buy button redirects to its data-checkout-url. The old
+    iframe checkout modal is still in VST.html if you need it again.
   -->
 
 <script>
@@ -1107,16 +834,15 @@
 
   // ---- wire up every demo player ----
   document.querySelectorAll(".ab-player").forEach(function(player){
-    var card     = player.closest(".plugin");
     var beforeEl = player.querySelector(".audio-before");
     var afterEl  = player.querySelector(".audio-after");
     var playBtn  = player.querySelector(".play-btn");
+    var playLabel = player.querySelector(".pb-label");
     var seek     = player.querySelector(".seek");
     var canvas   = player.querySelector(".wave canvas");
     var curEl    = player.querySelector(".cur");
     var durEl    = player.querySelector(".dur");
     var blendRange = player.querySelector(".xfade-range");
-    var wetPctEl = player.querySelector(".wetpct");
     var dryBtn   = player.querySelector(".xfade-dry");
     var wetBtn   = player.querySelector(".xfade-wet");
 
@@ -1124,7 +850,7 @@
     var afterUrl  = sourceUrl(afterEl);
 
     var blend = 0;        // 0 = fully dry, 1 = fully processed
-    var progress = 0;     // 0..1 playhead, drives the waveform fill
+    var progress = 0;     // 0..1 playhead
     var isSeeking = false;
     var self = {};
 
@@ -1134,9 +860,12 @@
     function setPlaying(on){
       playBtn.classList.toggle("is-playing", on);
       playBtn.setAttribute("aria-label", on ? "Pause demo" : "Play demo");
-      if(card) card.classList.toggle("is-playing", on);
+      if(playLabel) playLabel.textContent = on ? "Pause" : "Play";
     }
-    function setLoading(on){ playBtn.classList.toggle("is-loading", on); }
+    function setLoading(on){
+      playBtn.classList.toggle("is-loading", on);
+      if(playLabel && on) playLabel.textContent = "Loading";
+    }
 
     // ===== waveform =====
     var c2d = canvas ? canvas.getContext("2d") : null;
@@ -1153,18 +882,24 @@
       c2d.setTransform(dpr, 0, 0, dpr, 0, 0);
       c2d.clearRect(0, 0, w, h);
 
-      // the played portion warms from silver (dry) to gold (wet) with the fader
-      var r = Math.round(226 + (217 - 226) * blend);
-      var g = Math.round(228 + (164 - 228) * blend);
-      var b = Math.round(232 + (65 - 232) * blend);
+      // played portion runs from the page's off-white (dry) to gold (processed)
+      var r = Math.round(235 + (217 - 235) * blend);
+      var g = Math.round(232 + (164 - 232) * blend);
+      var b = Math.round(225 + (65 - 225) * blend);
       var played = "rgb(" + r + "," + g + "," + b + ")";
-      var rest = "rgba(255,255,255,0.16)";
+      var rest = "rgba(235,232,225,0.2)";
+      var mid = h / 2, px = progress * w;
 
-      var bar = 2, gap = 2, mid = h / 2;
-      var n = Math.max(1, Math.floor((w + gap) / (bar + gap)));
-      for(var i = 0; i < n; i++){
-        var amp = 0;
-        if(peaksDry){
+      if(!peaksDry){
+        // not loaded yet: a single hairline
+        c2d.fillStyle = rest;
+        c2d.fillRect(0, mid - 0.5, w, 1);
+        c2d.fillStyle = played;
+        c2d.fillRect(0, mid - 0.5, px, 1);
+      } else {
+        var bar = 2, gap = 1.5, stepX = bar + gap;
+        var n = Math.max(1, Math.floor((w + gap) / stepX));
+        for(var i = 0; i < n; i++){
           var a = Math.floor(i / n * PEAK_RES);
           var z = Math.max(a + 1, Math.floor((i + 1) / n * PEAK_RES));
           var d = 0, wv = 0;
@@ -1172,11 +907,15 @@
             if(peaksDry[k] > d) d = peaksDry[k];
             if(peaksWet[k] > wv) wv = peaksWet[k];
           }
-          amp = d + (wv - d) * blend;
+          var bh = Math.max(1, (d + (wv - d) * blend) * h);
+          var x = i * stepX;
+          c2d.fillStyle = x + bar / 2 <= px ? played : rest;
+          c2d.fillRect(x, mid - bh / 2, bar, bh);
         }
-        var bh = Math.max(2, amp * (h - 4));
-        c2d.fillStyle = (i + 0.5) / n <= progress ? played : rest;
-        c2d.fillRect(i * (bar + gap), mid - bh / 2, bar, bh);
+      }
+      if(progress > 0){
+        c2d.fillStyle = "rgb(235,232,225)";
+        c2d.fillRect(Math.min(w - 1, Math.round(px)), 0, 1, h);
       }
     }
     function requestDraw(){
@@ -1196,7 +935,6 @@
 
     function updateBlendUI(){
       var pct = Math.round(blend * 100);
-      if(wetPctEl) wetPctEl.textContent = pct;
       if(blendRange){
         blendRange.value = pct;
         blendRange.style.setProperty("--mix", pct + "%");
@@ -1232,6 +970,7 @@
         duration = Math.min(dryBuf.duration, wetBuf.duration);
         peaksDry = computePeaks(dryBuf, duration);
         peaksWet = computePeaks(wetBuf, duration);
+        // one shared scale, so the dry/wet level difference stays visible
         var max = 0;
         for(var i = 0; i < PEAK_RES; i++){ max = Math.max(max, peaksDry[i], peaksWet[i]); }
         if(max > 0){
@@ -1347,7 +1086,7 @@
     players.push(self);
     playBtn.addEventListener("click", function(){ if(isActive()) pause(); else play(); });
 
-    // ===== crossfader =====
+    // ===== dry / wet blend =====
     function setBlend(b){
       blend = Math.min(1, Math.max(0, b));
       updateBlendUI();
@@ -1409,50 +1148,64 @@
     });
   });
 
-  // ---- lineup index in the hero, built from the cards ----
+  // ---- catalog index, built from the plugin sections ----
   function slug(s){
     return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   }
-  (function buildLineup(){
-    var list = document.getElementById("pluginIndex");
-    var countEl = document.getElementById("pluginCount");
-    var cards = document.querySelectorAll(".plugin");
-    if(countEl) countEl.textContent = cards.length + (cards.length === 1 ? " plugin" : " plugins");
+  (function buildCatalog(){
+    var list = document.getElementById("catalogList");
     if(!list) return;
-    cards.forEach(function(card, i){
-      var h2 = card.querySelector("h2");
-      var price = card.querySelector(".price");
-      var name = h2 ? h2.textContent.trim() : "Plugin " + (i + 1);
+    document.querySelectorAll(".plugin").forEach(function(card, i){
+      var text = function(sel){ var el = card.querySelector(sel); return el ? el.textContent.trim() : ""; };
+      var name = text("h2") || "Plugin " + (i + 1);
       if(!card.id) card.id = slug(name) || "plugin-" + (i + 1);
 
       var a = document.createElement("a");
+      a.className = "catalog-row";
       a.href = "#" + card.id;
-      [["ix-num", (i < 9 ? "0" : "") + (i + 1)],
-       ["ix-name", name],
-       ["ix-price", price ? price.textContent.trim() : ""]].forEach(function(p){
+      var cell = function(cls, value){
         var s = document.createElement("span");
-        s.className = p[0]; s.textContent = p[1];
+        s.className = cls; s.textContent = value;
         a.appendChild(s);
-      });
+        return s;
+      };
+      cell("c-no", (i < 9 ? "0" : "") + (i + 1));
+      var nameEl = cell("c-name", name);
+      var tag = text(".plugin-no .tag");
+      if(tag){
+        var t = document.createElement("span");
+        t.className = "c-tag"; t.textContent = tag;
+        nameEl.appendChild(t);
+      }
+      cell("c-type", text('[data-spec="type"]'));
+      cell("c-price", text(".price"));
+
       var li = document.createElement("li");
       li.appendChild(a);
       list.appendChild(li);
     });
   })();
 
-  // ---- media galleries: first image is the stage, the rest become thumbnails ----
+  // ---- media: first image is the main view; extra images become view switches ----
   var lightbox = document.getElementById("lightbox");
-  var lbPanel = document.getElementById("lightboxPanel");
   var lbImg = document.getElementById("lightboxImg");
   var lbCaption = document.getElementById("lightboxCaption");
   var lbClose = document.getElementById("lightboxClose");
   var lbReturnFocus = null;
   var lbScrollY = 0;
-  var ZOOM_ICON = '<span class="zoom" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg></span>';
 
   document.querySelectorAll(".media").forEach(function(media){
     var imgs = Array.prototype.filter.call(media.children, function(el){ return el.tagName === "IMG"; });
     if(!imgs.length) return;
+
+    var items = imgs.map(function(img, i){
+      return {
+        src:img.getAttribute("src"),
+        alt:img.alt || "",
+        label:img.dataset.label || "View " + (i + 1),
+        caption:img.dataset.caption || ""
+      };
+    });
 
     var stage = document.createElement("button");
     stage.type = "button";
@@ -1460,50 +1213,42 @@
     var stageImg = document.createElement("img");
     stageImg.decoding = "async";
     stage.appendChild(stageImg);
-    stage.insertAdjacentHTML("beforeend", ZOOM_ICON);
-
-    // remember each image's own details before the thumbnails take them over
-    var items = imgs.map(function(img){
-      return { src:img.getAttribute("src"), alt:img.alt || "", caption:img.dataset.caption || "" };
-    });
+    var current = items[0];
     function show(item){
+      current = item;
       stageImg.src = item.src;
       stageImg.alt = item.alt;
-      stageImg.dataset.caption = item.caption;
       stage.setAttribute("aria-label", "Enlarge image" + (item.alt ? ": " + item.alt : ""));
     }
     show(items[0]);
-    media.insertBefore(stage, imgs[0]);
 
-    if(imgs.length > 1){
-      var strip = document.createElement("div");
-      strip.className = "media-thumbs";
-      imgs.forEach(function(img, i){
-        var t = document.createElement("button");
-        t.type = "button";
-        t.className = "media-thumb";
-        t.setAttribute("aria-label", "Show image " + (i + 1) + (items[i].alt ? ": " + items[i].alt : ""));
-        t.setAttribute("aria-pressed", i === 0 ? "true" : "false");
-        img.loading = "lazy";
-        img.alt = "";
-        t.appendChild(img);
-        t.addEventListener("click", function(){
-          strip.querySelectorAll(".media-thumb").forEach(function(o){ o.setAttribute("aria-pressed", o === t ? "true" : "false"); });
-          show(items[i]);
+    imgs.forEach(function(img){ img.remove(); });
+    media.appendChild(stage);
+
+    if(items.length > 1){
+      var views = document.createElement("div");
+      views.className = "media-views";
+      items.forEach(function(item, i){
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "media-view";
+        b.textContent = item.label;
+        b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+        b.addEventListener("click", function(){
+          views.querySelectorAll(".media-view").forEach(function(o){ o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+          show(item);
         });
-        strip.appendChild(t);
+        views.appendChild(b);
       });
-      media.appendChild(strip);
-    } else {
-      imgs[0].remove();
+      media.appendChild(views);
     }
 
     stage.addEventListener("click", function(){
-      openLightbox(stageImg.currentSrc || stageImg.src, stageImg.alt, stageImg.dataset.caption || "", stage);
+      openLightbox(stageImg.currentSrc || stageImg.src, current.alt, current.caption, stage);
     });
   });
 
-  // ---- image lightbox ----
+  // ---- lightbox ----
   function openLightbox(src, alt, caption, opener){
     if(!lightbox) return;
     lbReturnFocus = opener || null;
@@ -1548,20 +1293,17 @@
       if(e.target !== lightbox || fired) return;
       fired = true; lightbox.removeEventListener("transitionend", once); done();
     });
-    setTimeout(function(){ if(!fired){ fired = true; done(); } }, reducedMotion.matches ? 0 : 320);
+    setTimeout(function(){ if(!fired){ fired = true; done(); } }, reducedMotion.matches ? 0 : 260);
   }
 
   if(lightbox){
-    lightbox.addEventListener("click", function(e){
-      if(e.target !== lbImg) closeLightbox();
-    });
-    lbClose.addEventListener("click", closeLightbox);
+    lightbox.addEventListener("click", closeLightbox);
     document.addEventListener("keydown", function(e){
       if(e.key === "Escape") closeLightbox();
     });
   }
 
-  // ---- header picks up a surface once the page scrolls under it ----
+  // ---- header picks up a solid ground once content scrolls under it ----
   var header = document.getElementById("siteHeader");
   if(header){
     var onScroll = function(){ header.classList.toggle("is-scrolled", window.scrollY > 8); };
